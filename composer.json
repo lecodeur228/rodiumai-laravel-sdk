@@ -11,8 +11,9 @@
     },
     "authors": [
         {
-            "name": "Irin (techpastor)",
-            "email": "support@rodiumai.io"
+            "name": "RodiumAI",
+            "email": "support@rodiumai.io",
+            "homepage": "https://www.rodiumai.io"
         }
     ],
     "require": {

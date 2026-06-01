@@ -8,7 +8,7 @@ Guide pas à pas pour GitHub + Packagist.
 |---------|-------------------|
 | **Nom du repo** | `rodiumai-laravel-sdk` |
 | **Organisation (officiel)** | `https://github.com/rodiumai/rodiumai-laravel-sdk` |
-| **Compte perso (alternative)** | `https://github.com/techpastor/rodiumai-laravel-sdk` |
+| **Dépôt actuel** | `https://github.com/lecodeur228/rodiumai-laravel-sdk` |
 
 Le nom **`rodiumai-laravel-sdk`** est le standard : il correspond au package Composer `rodiumai/laravel-sdk` et évite la confusion avec d’autres SDK.
 
@@ -21,9 +21,7 @@ Pour publier sous **`rodiumai/laravel-sdk`**, tu dois pouvoir prouver que tu con
 
 - **Option A (idéal)** — Créer l’organisation GitHub **`rodiumai`**, y pousser le repo, lier Packagist à cette org.
 - **Option B** — Compte Packagist personnel + première soumission ; Packagist peut demander une validation du vendor.
-- **Option C** — Renommer le package en `techpastor/rodiumai-laravel-sdk` (moins aligné marque Rodium).
-
-Ce dépôt est déjà configuré pour **`rodiumai/laravel-sdk`**.
+Ce dépôt est déjà configuré pour **`rodiumai/laravel-sdk`** sur Packagist.
 
 ---
 
@@ -60,8 +58,7 @@ git status   # vérifier : pas de .env, pas de vendor/
 git commit -m "feat: initial release v0.1.0 — Rodium AI Laravel SDK"
 
 git branch -M main
-git remote add origin https://github.com/rodiumai/rodiumai-laravel-sdk.git
-# ou : git remote add origin https://github.com/techpastor/rodiumai-laravel-sdk.git
+git remote add origin https://github.com/lecodeur228/rodiumai-laravel-sdk.git
 
 git push -u origin main
 ```
@@ -87,23 +84,31 @@ composer require rodiumai/laravel-sdk:^0.1
 
 ---
 
-## 4. Packagist
+## 4. Packagist (obligatoire pour `composer require` sans config VCS)
 
-1. Compte sur [packagist.org](https://packagist.org)
+Sans cette étape, Composer affiche : *Could not find a matching version of package rodiumai/laravel-sdk*.
+
+1. Compte sur [packagist.org](https://packagist.org) (connexion GitHub recommandée)
 2. **Submit** → URL du repo :  
-   `https://github.com/rodiumai/rodiumai-laravel-sdk`  
-   (ou ton URL `techpastor/...`)
-3. Si le vendor `rodiumai` est nouveau, suivre la validation Packagist
-4. **Settings du package** → activer le webhook GitHub (auto-update à chaque push/tag)
+   `https://github.com/lecodeur228/rodiumai-laravel-sdk`
+3. Packagist lit `composer.json` → le package apparaît comme **`rodiumai/laravel-sdk`**
+4. Vérifier que le tag **`v0.1.0`** est visible sur Packagist (onglet Versions)
+5. **Settings du package** → activer le webhook GitHub (auto-update à chaque push/tag)
+
+Test après indexation (1–2 min) :
+
+```bash
+composer show rodiumai/laravel-sdk --all
+```
 
 Webhook Packagist (si config manuelle) :  
 `https://packagist.org/api/github?username=TON_USER_PACKAGIST`
 
 ---
 
-## 5. Mettre à jour les URLs (si repo ≠ techpastor)
+## 5. Mettre à jour les URLs (changement de dépôt)
 
-Si tu publies sous **`rodiumai/rodiumai-laravel-sdk`**, mets à jour dans :
+Si tu déplaces le repo vers l’organisation **`rodiumai`**, mets à jour dans :
 
 - `composer.json` → `support.issues` et `support.source`
 - `README.md` → badge CI GitHub Actions
