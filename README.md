@@ -59,21 +59,19 @@ Alignement détaillé SDK ↔ API : [docs/api-alignment.md](docs/api-alignment.m
 
 ## Installation
 
-Le package est publié sur **Packagist** — aucune configuration `repositories` n’est nécessaire.
-
-### Laravel 10 / 11
+Installe le package depuis **[Packagist](https://packagist.org/packages/rodiumai/laravel-sdk)** :
 
 ```bash
 composer require rodiumai/laravel-sdk
 ```
 
-### Laravel 12 (recommandé)
+Pour **Laravel 12** (PHP 8.2+) :
 
 ```bash
 composer require rodiumai/laravel-sdk:^0.1.1
 ```
 
-### Après `composer require`
+### Après l’installation
 
 1. Publier la config (optionnel mais recommandé) :
 
@@ -87,20 +85,7 @@ php artisan vendor:publish --tag=rodiumai-config
 
 ### PHP sans Laravel
 
-```bash
-composer require rodiumai/laravel-sdk
-```
-
-Puis instancier `RodiumAI\RodiumAIClient` directement (voir [Démarrage rapide](#démarrage-rapide)).
-
-### Installation depuis GitHub (secours)
-
-Uniquement si Packagist est indisponible :
-
-```bash
-composer config repositories.rodiumai-laravel-sdk vcs https://github.com/lecodeur228/rodiumai-laravel-sdk
-composer require rodiumai/laravel-sdk:^0.1.1
-```
+Même commande Composer. Instancie ensuite `RodiumAI\RodiumAIClient` directement (voir [Démarrage rapide](#démarrage-rapide)).
 
 ## Configuration
 
