@@ -7,7 +7,7 @@ SDK PHP / Laravel officiel pour l’API [Rodium AI](https://www.rodiumai.io) —
 [![Latest Version](https://img.shields.io/packagist/v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![PHP Version](https://img.shields.io/packagist/php-v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://github.com/rodiumai/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/rodiumai/rodiumai-laravel-sdk/actions)
+[![Tests](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions)
 
 ## Table des matières
 
@@ -42,13 +42,43 @@ Alignement détaillé SDK ↔ API : [docs/api-alignment.md](docs/api-alignment.m
 ## Prérequis
 
 - PHP **8.1+** avec extension `json`
-- Laravel **10** ou **11** (optionnel — le client fonctionne en PHP pur)
+- Laravel **10**, **11** ou **12** (optionnel — le client fonctionne en PHP pur)
+- Laravel 12 : PHP **8.2+**
 - Compte Rodium AI + clé API : [dashboard](https://www.rodiumai.io/dashboard)
 
 ## Installation
 
 ```bash
 composer require rodiumai/laravel-sdk
+```
+
+> **Le package doit être enregistré sur [Packagist](https://packagist.org/packages/rodiumai/laravel-sdk).**  
+> Si Composer ne le trouve pas encore, voir [Installation depuis GitHub](#installation-depuis-github-en-attente-de-packagist).
+
+### Installation depuis GitHub (en attente de Packagist)
+
+Ajoute dans le `composer.json` de ton projet Laravel :
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/lecodeur228/rodiumai-laravel-sdk"
+    }
+]
+```
+
+Puis :
+
+```bash
+composer require rodiumai/laravel-sdk:^0.1
+```
+
+Ou en une commande :
+
+```bash
+composer config repositories.rodiumai-laravel-sdk vcs https://github.com/lecodeur228/rodiumai-laravel-sdk
+composer require rodiumai/laravel-sdk:^0.1
 ```
 
 Laravel découvre automatiquement le `ServiceProvider`. Publier la config :
