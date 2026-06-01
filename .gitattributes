@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# Exclure du zip Composer (composer install --prefer-dist)
+/.github export-ignore
+/tests export-ignore
+/bin export-ignore
+/docs export-ignore
+/phpunit.xml export-ignore
+/.env.example export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/CONTRIBUTING.md export-ignore
+/CHANGELOG.md export-ignore
