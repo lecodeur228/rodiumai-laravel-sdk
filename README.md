@@ -2,12 +2,23 @@
 
 SDK PHP / Laravel officiel pour l’API [Rodium AI](https://www.rodiumai.io) — accès unifié aux modèles IA (OpenAI, Anthropic, Google, DeepSeek, MiniMax…) avec facturation en crédits **RODI** et recharge **Mobile Money**.
 
-> API REST **compatible OpenAI** : mêmes endpoints, mêmes payloads que décrits sur [rodiumai.io/docs](https://www.rodiumai.io/docs).
+> API REST **compatible OpenAI** : mêmes endpoints et payloads que [rodiumai.io/docs](https://www.rodiumai.io/docs).
 
-[![Latest Version](https://img.shields.io/packagist/v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
+[![Total Downloads](https://img.shields.io/packagist/dt/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![PHP Version](https://img.shields.io/packagist/php-v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions)
+
+## Liens
+
+| Ressource | URL |
+|-----------|-----|
+| **Packagist** (installation Composer) | [packagist.org/packages/rodiumai/laravel-sdk](https://packagist.org/packages/rodiumai/laravel-sdk) |
+| **Code source** | [github.com/lecodeur228/rodiumai-laravel-sdk](https://github.com/lecodeur228/rodiumai-laravel-sdk) |
+| **Documentation API** | [rodiumai.io/docs](https://www.rodiumai.io/docs) |
+| **Dashboard & clés API** | [rodiumai.io/dashboard](https://www.rodiumai.io/dashboard) |
+| **Catalogue modèles** | [rodiumai.io/models](https://www.rodiumai.io/models) |
 
 ## Table des matières
 
@@ -43,48 +54,52 @@ Alignement détaillé SDK ↔ API : [docs/api-alignment.md](docs/api-alignment.m
 
 - PHP **8.1+** avec extension `json`
 - Laravel **10**, **11** ou **12** (optionnel — le client fonctionne en PHP pur)
-- Laravel 12 : PHP **8.2+**
+- Laravel **12** : PHP **8.2+** → utilisez **`^0.1.1`** minimum
 - Compte Rodium AI + clé API : [dashboard](https://www.rodiumai.io/dashboard)
 
 ## Installation
+
+Le package est publié sur **Packagist** — aucune configuration `repositories` n’est nécessaire.
+
+### Laravel 10 / 11
 
 ```bash
 composer require rodiumai/laravel-sdk
 ```
 
-> **Le package doit être enregistré sur [Packagist](https://packagist.org/packages/rodiumai/laravel-sdk).**  
-> Si Composer ne le trouve pas encore, voir [Installation depuis GitHub](#installation-depuis-github-en-attente-de-packagist).
-
-### Installation depuis GitHub (en attente de Packagist)
-
-Ajoute dans le `composer.json` de ton projet Laravel :
-
-```json
-"repositories": [
-    {
-        "type": "vcs",
-        "url": "https://github.com/lecodeur228/rodiumai-laravel-sdk"
-    }
-]
-```
-
-Puis :
+### Laravel 12 (recommandé)
 
 ```bash
-composer require rodiumai/laravel-sdk:^0.1
+composer require rodiumai/laravel-sdk:^0.1.1
 ```
 
-Ou en une commande :
+### Après `composer require`
 
-```bash
-composer config repositories.rodiumai-laravel-sdk vcs https://github.com/lecodeur228/rodiumai-laravel-sdk
-composer require rodiumai/laravel-sdk:^0.1
-```
-
-Laravel découvre automatiquement le `ServiceProvider`. Publier la config :
+1. Publier la config (optionnel mais recommandé) :
 
 ```bash
 php artisan vendor:publish --tag=rodiumai-config
+```
+
+2. Ajouter ta clé API dans `.env` (voir [Configuration](#configuration)).
+
+3. Le `ServiceProvider` et la Facade `RodiumAI` sont **auto-découverts** — rien à déclarer dans `bootstrap/providers.php`.
+
+### PHP sans Laravel
+
+```bash
+composer require rodiumai/laravel-sdk
+```
+
+Puis instancier `RodiumAI\RodiumAIClient` directement (voir [Démarrage rapide](#démarrage-rapide)).
+
+### Installation depuis GitHub (secours)
+
+Uniquement si Packagist est indisponible :
+
+```bash
+composer config repositories.rodiumai-laravel-sdk vcs https://github.com/lecodeur228/rodiumai-laravel-sdk
+composer require rodiumai/laravel-sdk:^0.1.1
 ```
 
 ## Configuration
@@ -134,7 +149,7 @@ $response = $client
 echo $response->content;
 ```
 
-Équivalent [quickstart cURL / OpenAI SDK](https://www.rodiumai.io/docs) : `POST https://api.rodiumai.io/v1/chat/completions` avec header `Authorization: Bearer {RODIUMAI_API_KEY}`.
+Équivalent [quickstart cURL / OpenAI SDK](https://www.rodiumai.io/docs) : `POST https://api.rodiumai.io/v1/chat/completions` avec `Authorization: Bearer {RODIUMAI_API_KEY}`.
 
 ## Modèles typés (enum)
 
@@ -279,6 +294,15 @@ try {
 
 DTOs : `ChatResponse`, `ChatMessage`, `ModelCollection`.
 
+## Versions
+
+| Version | Notes |
+|---------|--------|
+| **v0.1.1** | Support Laravel 12 (`illuminate/support` ^12) |
+| **v0.1.0** | Première release : chat, stream, models, enums, Facade |
+
+Historique : [CHANGELOG.md](CHANGELOG.md).
+
 ## Tests & développement
 
 ```bash
@@ -292,9 +316,7 @@ php bin/smoke-test.php        # Parcours live dans la console
 
 Voir [CONTRIBUTING.md](CONTRIBUTING.md) et [docs/architecture.md](docs/architecture.md).
 
-## Publier / maintenir le package
-
-Guide complet : [docs/PUBLISHING.md](docs/PUBLISHING.md).
+Mainteneurs : guide [docs/PUBLISHING.md](docs/PUBLISHING.md) (tags, Packagist).
 
 ## Licence
 
