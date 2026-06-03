@@ -1,8 +1,8 @@
 # rodiumai/laravel-sdk
 
-SDK PHP / Laravel officiel pour l’API [Rodium AI](https://www.rodiumai.io) — accès unifié aux modèles IA (OpenAI, Anthropic, Google, DeepSeek, MiniMax…) avec facturation en crédits **RODI** et recharge **Mobile Money**.
+Official PHP / Laravel SDK for the [Rodium AI](https://www.rodiumai.io) API — unified access to AI models (OpenAI, Anthropic, Google, DeepSeek, MiniMax…) with **RODI** credit billing and **Mobile Money** top-ups.
 
-> API REST **compatible OpenAI** : mêmes endpoints et payloads que [rodiumai.io/docs](https://www.rodiumai.io/docs).
+> **OpenAI-compatible** REST API: same endpoints and payloads as documented at [rodiumai.io/docs](https://www.rodiumai.io/docs).
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![Total Downloads](https://img.shields.io/packagist/dt/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
@@ -10,97 +10,97 @@ SDK PHP / Laravel officiel pour l’API [Rodium AI](https://www.rodiumai.io) —
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions)
 
-## Liens
+## Links
 
-| Ressource | URL |
-|-----------|-----|
-| **Packagist** (installation Composer) | [packagist.org/packages/rodiumai/laravel-sdk](https://packagist.org/packages/rodiumai/laravel-sdk) |
-| **Code source** | [github.com/lecodeur228/rodiumai-laravel-sdk](https://github.com/lecodeur228/rodiumai-laravel-sdk) |
-| **Documentation API** | [rodiumai.io/docs](https://www.rodiumai.io/docs) |
-| **Dashboard & clés API** | [rodiumai.io/dashboard](https://www.rodiumai.io/dashboard) |
-| **Catalogue modèles** | [rodiumai.io/models](https://www.rodiumai.io/models) |
+| Resource | URL |
+|----------|-----|
+| **Packagist** (Composer install) | [packagist.org/packages/rodiumai/laravel-sdk](https://packagist.org/packages/rodiumai/laravel-sdk) |
+| **Source code** | [github.com/lecodeur228/rodiumai-laravel-sdk](https://github.com/lecodeur228/rodiumai-laravel-sdk) |
+| **API documentation** | [rodiumai.io/docs](https://www.rodiumai.io/docs) |
+| **Dashboard & API keys** | [rodiumai.io/dashboard](https://www.rodiumai.io/dashboard) |
+| **Model catalogue** | [rodiumai.io/models](https://www.rodiumai.io/models) |
 
-## Table des matières
+## Table of contents
 
-- [Documentation officielle](#documentation-officielle)
-- [Prérequis](#prérequis)
+- [Official documentation](#official-documentation)
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Démarrage rapide](#démarrage-rapide)
-- [Modèles typés (enum)](#modèles-typés-enum)
-- [Paramètres chat](#paramètres-chat)
+- [Quick start](#quick-start)
+- [Typed models (enum)](#typed-models-enum)
+- [Chat parameters](#chat-parameters)
 - [Streaming (SSE)](#streaming-sse)
-- [Liste des modèles](#liste-des-modèles)
-- [Gestion des erreurs](#gestion-des-erreurs)
-- [Référence SDK](#référence-sdk)
-- [Tests & développement](#tests--développement)
-- [Contribuer](#contribuer)
-- [Licence](#licence)
+- [Listing models](#listing-models)
+- [Error handling](#error-handling)
+- [SDK reference](#sdk-reference)
+- [Testing & development](#testing--development)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Documentation officielle
+## Official documentation
 
-| Sujet | Lien Rodium AI |
-|--------|----------------|
+| Topic | Rodium AI link |
+|-------|----------------|
 | Quickstart | [rodiumai.io/docs](https://www.rodiumai.io/docs) |
-| Vue d’ensemble API | [docs/api/overview](https://www.rodiumai.io/docs/api/overview) |
+| API overview | [docs/api/overview](https://www.rodiumai.io/docs/api/overview) |
 | Chat completions | [docs/api/chat-completions](https://www.rodiumai.io/docs/api/chat-completions) |
 | Streaming SSE | [docs/api/streaming](https://www.rodiumai.io/docs/api/streaming) |
-| Modèles | [docs/api/models](https://www.rodiumai.io/docs/api/models) · [Catalogue](https://www.rodiumai.io/models) |
-| Erreurs HTTP | [docs/api/errors](https://www.rodiumai.io/docs/api/errors) |
+| Models | [docs/api/models](https://www.rodiumai.io/docs/api/models) · [Catalogue](https://www.rodiumai.io/models) |
+| HTTP errors | [docs/api/errors](https://www.rodiumai.io/docs/api/errors) |
 
-Alignement détaillé SDK ↔ API : [docs/api-alignment.md](docs/api-alignment.md).
+Detailed SDK ↔ API mapping: [docs/api-alignment.md](docs/api-alignment.md).
 
-## Prérequis
+## Requirements
 
-- PHP **8.1+** avec extension `json`
-- Laravel **10**, **11** ou **12** (optionnel — le client fonctionne en PHP pur)
-- Laravel **12** : PHP **8.2+** → utilisez **`^0.1.1`** minimum
-- Compte Rodium AI + clé API : [dashboard](https://www.rodiumai.io/dashboard)
+- PHP **8.1+** with the `json` extension
+- Laravel **10**, **11**, or **12** (optional — the client works in plain PHP)
+- Laravel **12**: PHP **8.2+** → use **`^0.1.1`** minimum
+- Rodium AI account + API key: [dashboard](https://www.rodiumai.io/dashboard)
 
 ## Installation
 
-Installe le package depuis **[Packagist](https://packagist.org/packages/rodiumai/laravel-sdk)** :
+Install from **[Packagist](https://packagist.org/packages/rodiumai/laravel-sdk)**:
 
 ```bash
 composer require rodiumai/laravel-sdk
 ```
 
-Pour **Laravel 12** (PHP 8.2+) :
+For **Laravel 12** (PHP 8.2+):
 
 ```bash
 composer require rodiumai/laravel-sdk:^0.1.1
 ```
 
-### Après l’installation
+### After installation
 
-1. Publier la config (optionnel mais recommandé) :
+1. Publish config (optional but recommended):
 
 ```bash
 php artisan vendor:publish --tag=rodiumai-config
 ```
 
-2. Ajouter ta clé API dans `.env` (voir [Configuration](#configuration)).
+2. Add your API key to `.env` (see [Configuration](#configuration)).
 
-3. Le `ServiceProvider` et la Facade `RodiumAI` sont **auto-découverts** — rien à déclarer dans `bootstrap/providers.php`.
+3. The `ServiceProvider` and `RodiumAI` Facade are **auto-discovered** — nothing to register in `bootstrap/providers.php`.
 
-### PHP sans Laravel
+### Plain PHP (no Laravel)
 
-Même commande Composer. Instancie ensuite `RodiumAI\RodiumAIClient` directement (voir [Démarrage rapide](#démarrage-rapide)).
+Same Composer command. Then instantiate `RodiumAI\RodiumAIClient` directly (see [Quick start](#quick-start)).
 
 ## Configuration
 
-Fichier `.env` :
+`.env` file:
 
 ```env
-RODIUMAI_API_KEY=rd_sk_votre_cle_secrete
+RODIUMAI_API_KEY=rd_sk_your_secret_key
 RODIUMAI_BASE_URL=https://api.rodiumai.io/v1
 RODIUMAI_DEFAULT_MODEL=openai/gpt-4o
 RODIUMAI_TIMEOUT=30
 ```
 
-Ne jamais committer `.env` ni une clé API dans le dépôt.
+Never commit `.env` or API keys to the repository.
 
-## Démarrage rapide
+## Quick start
 
 ### Laravel (Facade)
 
@@ -111,13 +111,13 @@ use RodiumAI\Facades\RodiumAI;
 $response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
     ->temperature(0.7)
     ->maxTokens(300)
-    ->chat('Explique Rodium AI en deux phrases.');
+    ->chat('Explain Rodium AI in two sentences.');
 
 echo $response->content;
-echo $response->totalTokens(); // tokens facturés
+echo $response->totalTokens(); // billed tokens
 ```
 
-### PHP pur
+### Plain PHP
 
 ```php
 use RodiumAI\Enums\RodiumAIModel;
@@ -129,16 +129,16 @@ $client = new RodiumAIClient(
 
 $response = $client
     ->model(RodiumAIModel::AnthropicClaudeSonnet46)
-    ->chat('Bonjour !');
+    ->chat('Hello!');
 
 echo $response->content;
 ```
 
-Équivalent [quickstart cURL / OpenAI SDK](https://www.rodiumai.io/docs) : `POST https://api.rodiumai.io/v1/chat/completions` avec `Authorization: Bearer {RODIUMAI_API_KEY}`.
+Equivalent to the [cURL / OpenAI SDK quickstart](https://www.rodiumai.io/docs): `POST https://api.rodiumai.io/v1/chat/completions` with `Authorization: Bearer {RODIUMAI_API_KEY}`.
 
-## Modèles typés (enum)
+## Typed models (enum)
 
-Les **45+** modèles du catalogue sont exposés via `RodiumAIModel` — autocomplétion IDE et validation à l’exécution :
+**45+** catalogue models are available via `RodiumAIModel` — IDE autocomplete and runtime validation:
 
 ```php
 use RodiumAI\Enums\RodiumAIModality;
@@ -147,40 +147,40 @@ use RodiumAI\Enums\RodiumAIProvider;
 
 RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->chat('…');
 
-// Filtres
+// Filters
 RodiumAIModel::forProvider(RodiumAIProvider::Google);
 RodiumAIModel::forModality(RodiumAIModality::Text);
 
-// Chat texte uniquement
+// Text chat only
 RodiumAIModel::OpenAiGpt4o->supportsChatCompletion(); // true
 ```
 
-Quand Rodium AI ajoute des modèles :
+When Rodium AI adds new models:
 
 ```bash
 RODIUMAI_API_KEY="…" php bin/generate-model-enum.php
 ```
 
-## Paramètres chat
+## Chat parameters
 
-Alignés sur [chat-completions](https://www.rodiumai.io/docs/api/chat-completions) :
+Aligned with [chat-completions](https://www.rodiumai.io/docs/api/chat-completions):
 
-| Paramètre API | SDK |
+| API parameter | SDK |
 |---------------|-----|
 | `model` | `->model()` / `RodiumAIModel` / `$options['model']` |
-| `messages` | Tableau `{role, content}` ou `string` (→ message `user`) |
+| `messages` | Array of `{role, content}` or `string` (→ `user` message) |
 | `max_tokens` | `->maxTokens()` / `$options['max_tokens']` |
 | `temperature` (0–2) | `->temperature()` / `$options['temperature']` |
 | `top_p` (0–1) | `->topP()` / `$options['top_p']` |
 | `stop` | `$options['stop']` |
-| `stream` | Automatique avec `->stream()` |
+| `stream` | Set automatically by `->stream()` |
 
 ```php
 use RodiumAI\Data\ChatMessage;
 
 $messages = [
-    ChatMessage::system('Tu es un assistant Laravel.'),
-    ChatMessage::user('C\'est quoi un Service Provider ?'),
+    ChatMessage::system('You are a Laravel assistant.'),
+    ChatMessage::user('What is a Service Provider?'),
 ];
 
 $response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
@@ -192,15 +192,15 @@ $response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
 
 ## Streaming (SSE)
 
-Conforme à [docs/api/streaming](https://www.rodiumai.io/docs/api/streaming) : lignes `data: …`, fin sur `data: [DONE]`.
+Follows [docs/api/streaming](https://www.rodiumai.io/docs/api/streaming): `data: …` lines, end with `data: [DONE]`.
 
 ```php
-foreach (RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->stream('Raconte une histoire courte.') as $delta) {
+foreach (RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->stream('Tell a short story.') as $delta) {
     echo $delta;
 }
 ```
 
-### Laravel — réponse `StreamedResponse`
+### Laravel — `StreamedResponse`
 
 ```php
 use Illuminate\Http\Request;
@@ -224,9 +224,9 @@ public function streamChat(Request $request): StreamedResponse
 }
 ```
 
-## Liste des modèles
+## Listing models
 
-`GET /v1/models` — tarifs RODI et métadonnées :
+`GET /v1/models` — RODI pricing and metadata:
 
 ```php
 $models = RodiumAI::models();
@@ -238,17 +238,17 @@ foreach ($models->ids() as $id) {
 $anthropic = $models->byProvider(RodiumAIProvider::Anthropic);
 ```
 
-## Gestion des erreurs
+## Error handling
 
-Voir [docs/api/errors](https://www.rodiumai.io/docs/api/errors).
+See [docs/api/errors](https://www.rodiumai.io/docs/api/errors).
 
-| HTTP | Exception SDK | Action suggérée |
-|------|---------------|-----------------|
-| 401 | `UnauthorizedException` | Vérifier `RODIUMAI_API_KEY` |
-| 402 | `InsufficientCreditsException` | Recharger des RODI (dashboard) |
-| 429 | `RateLimitException` | Backoff exponentiel puis retry |
-| 422 | `ValidationException` | Corriger `model` / `messages` |
-| 500+ | `RodiumAIException` | Retry une fois, puis support |
+| HTTP | SDK exception | Suggested action |
+|------|---------------|------------------|
+| 401 | `UnauthorizedException` | Check `RODIUMAI_API_KEY` |
+| 402 | `InsufficientCreditsException` | Top up RODI credits (dashboard) |
+| 429 | `RateLimitException` | Exponential backoff, then retry |
+| 422 | `ValidationException` | Fix `model` / `messages` |
+| 500+ | `RodiumAIException` | Retry once, then contact support |
 
 ```php
 use RodiumAI\Exceptions\InsufficientCreditsException;
@@ -258,51 +258,51 @@ use RodiumAI\Facades\RodiumAI;
 try {
     $response = RodiumAI::chat('Test');
 } catch (InsufficientCreditsException $e) {
-    logger()->warning('RODI insuffisant', ['body' => $e->responseBody()]);
+    logger()->warning('Insufficient RODI', ['body' => $e->responseBody()]);
 } catch (RodiumAIException $e) {
     logger()->error('Rodium AI', ['code' => $e->getCode(), 'body' => $e->responseBody()]);
 }
 ```
 
-## Référence SDK
+## SDK reference
 
-| Méthode | Retour | Description |
-|---------|--------|-------------|
-| `chat($messages, $options = [])` | `ChatResponse` | Completion non-streaming |
-| `stream($messages, $options = [])` | `Generator<string>` | Deltas texte SSE |
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `chat($messages, $options = [])` | `ChatResponse` | Non-streaming completion |
+| `stream($messages, $options = [])` | `Generator<string>` | SSE text deltas |
 | `models()` | `ModelCollection` | Catalogue + pricing |
-| `model($id)` | `static` | Fluent : modèle |
-| `temperature($f)` | `static` | Fluent : 0–2 |
-| `topP($f)` | `static` | Fluent : 0–1 |
-| `maxTokens($n)` | `static` | Fluent : limite tokens |
-| `systemPrompt($s)` | `static` | Fluent : message système |
+| `model($id)` | `static` | Fluent: model |
+| `temperature($f)` | `static` | Fluent: 0–2 |
+| `topP($f)` | `static` | Fluent: 0–1 |
+| `maxTokens($n)` | `static` | Fluent: token limit |
+| `systemPrompt($s)` | `static` | Fluent: system message |
 
-DTOs : `ChatResponse`, `ChatMessage`, `ModelCollection`.
+DTOs: `ChatResponse`, `ChatMessage`, `ModelCollection`.
 
 ## Versions
 
 | Version | Notes |
 |---------|--------|
-| **v0.1.1** | Support Laravel 12 (`illuminate/support` ^12) |
-| **v0.1.0** | Première release : chat, stream, models, enums, Facade |
+| **v0.1.1** | Laravel 12 support (`illuminate/support` ^12) |
+| **v0.1.0** | Initial release: chat, stream, models, enums, Facade |
 
-Historique : [CHANGELOG.md](CHANGELOG.md).
+Full history: [CHANGELOG.md](CHANGELOG.md).
 
-## Tests & développement
+## Testing & development
 
 ```bash
 composer install
-composer test                 # PHPUnit (HTTP mocké)
+composer test                 # PHPUnit (mocked HTTP)
 export RODIUMAI_API_KEY="…"
-php bin/smoke-test.php        # Parcours live dans la console
+php bin/smoke-test.php        # Live API walkthrough in the terminal
 ```
 
-## Contribuer
+## Contributing
 
-Voir [CONTRIBUTING.md](CONTRIBUTING.md) et [docs/architecture.md](docs/architecture.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-Mainteneurs : guide [docs/PUBLISHING.md](docs/PUBLISHING.md) (tags, Packagist).
+Maintainers: [docs/PUBLISHING.md](docs/PUBLISHING.md) (tags, Packagist).
 
-## Licence
+## License
 
-MIT — voir [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
