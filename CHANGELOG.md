@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore compatibility with Laravel 10 and 11, and add compatibility with Laravel 13 by removing strict `laravel/framework` dependency in favor of wide `illuminate/support` version range (`^8.0|^9.0|^10.0|^11.0|^12.0|^13.0`).
+- Restore pure PHP compatibility without forcing installation of `laravel/framework` package.
+
 ## [0.1.1] - 2026-06-02
 
 ### Added

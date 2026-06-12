@@ -53,8 +53,8 @@ Detailed SDK ↔ API mapping: [docs/api-alignment.md](docs/api-alignment.md).
 ## Requirements
 
 - PHP **8.1+** with the `json` extension
-- Laravel **10**, **11**, or **12** (optional — the client works in plain PHP)
-- Laravel **12**: PHP **8.2+** → use **`^0.1.1`** minimum
+- Laravel **10**, **11**, **12**, or **13** (optional — the client works in plain PHP)
+- Laravel **12+**: PHP **8.2+** → use **`^0.1.1`** minimum
 - Rodium AI account + API key: [dashboard](https://www.rodiumai.io/dashboard)
 
 ## Installation
@@ -65,7 +65,7 @@ Install from **[Packagist](https://packagist.org/packages/rodiumai/laravel-sdk)*
 composer require rodiumai/laravel-sdk
 ```
 
-For **Laravel 12** (PHP 8.2+):
+For **Laravel 12 and 13** (PHP 8.2+):
 
 ```bash
 composer require rodiumai/laravel-sdk:^0.1.1
