@@ -16,18 +16,25 @@ use RodiumAI\Exceptions\ValidationException;
  */
 final class ApiExceptionMapper
 {
+    public function __construct(
+        private readonly RodiumAIMessages $messages,
+    ) {}
+
     public function map(ClientException $exception): RodiumAIException
     {
         $response = $exception->getResponse();
         $statusCode = $response->getStatusCode();
         $body = json_decode($response->getBody()->getContents(), true);
-        $message = is_array($body) ? ($body['error']['message'] ?? $exception->getMessage()) : $exception->getMessage();
+        $message = is_array($body)
+            ? ($body['error']['message'] ?? null)
+            : null;
+        $message = $message ?: ($exception->getMessage() ?: $this->messages->unknownError);
 
         return match ($statusCode) {
-            401 => new UnauthorizedException($message, $statusCode, $exception, $body),
-            402 => new InsufficientCreditsException($message, $statusCode, $exception, $body),
-            429 => new RateLimitException($message, $statusCode, $exception, $body),
-            422 => new ValidationException($message, $statusCode, $exception, $body),
+            401 => new UnauthorizedException($message, $statusCode, $exception, $body, $this->messages->unauthorizedHint),
+            402 => new InsufficientCreditsException($message, $statusCode, $exception, $body, $this->messages->insufficientCreditsHint),
+            429 => new RateLimitException($message, $statusCode, $exception, $body, $this->messages->rateLimitHint),
+            422 => new ValidationException($message, $statusCode, $exception, $body, $this->messages->validationHint),
             default => new RodiumAIException($message, $statusCode, $exception, $body),
         };
     }

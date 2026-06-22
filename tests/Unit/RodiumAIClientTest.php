@@ -11,7 +11,6 @@ use PHPUnit\Framework\TestCase;
 use RodiumAI\Exceptions\InsufficientCreditsException;
 use RodiumAI\Exceptions\RateLimitException;
 use RodiumAI\Exceptions\UnauthorizedException;
-use RodiumAI\Enums\RodiumAIModel;
 use RodiumAI\RodiumAIClient;
 
 class RodiumAIClientTest extends TestCase
@@ -99,7 +98,7 @@ class RodiumAIClientTest extends TestCase
         ]);
 
         $client = $this->makeClient([new Response(200, [], $fixture)], $history);
-        $client->model(RodiumAIModel::AnthropicClaudeSonnet46)->chat('Hi');
+        $client->model('anthropic/claude-sonnet-4-6')->chat('Hi');
 
         $body = json_decode((string) $history[0]['request']->getBody(), true);
         $this->assertSame('anthropic/claude-sonnet-4-6', $body['model']);
@@ -171,7 +170,7 @@ class RodiumAIClientTest extends TestCase
         $client->chat('Test');
     }
 
-    public function test_model_accepts_enum(): void
+    public function test_model_accepts_api_model_id(): void
     {
         $history = [];
         $fixture = json_encode([
@@ -187,10 +186,33 @@ class RodiumAIClientTest extends TestCase
         ]);
 
         $client = $this->makeClient([new Response(200, [], $fixture)], $history);
-        $client->model(RodiumAIModel::OpenAiGpt4o)->chat('Hi');
+        $client->model('openai/gpt-4o')->chat('Hi');
 
         $body = json_decode((string) $history[0]['request']->getBody(), true);
         $this->assertSame('openai/gpt-4o', $body['model']);
+    }
+
+    public function test_language_prepends_localized_system_prompt(): void
+    {
+        $history = [];
+        $fixture = json_encode([
+            'id' => 'chatcmpl-123',
+            'model' => 'openai/gpt-4o',
+            'choices' => [
+                [
+                    'message' => ['role' => 'assistant', 'content' => 'Hi'],
+                    'finish_reason' => 'stop',
+                ],
+            ],
+            'usage' => ['total_tokens' => 1],
+        ]);
+
+        $client = $this->makeClient([new Response(200, [], $fixture)], $history);
+        $client->language('fr')->chat('Bonjour');
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame('system', $body['messages'][0]['role']);
+        $this->assertStringContainsString('français', $body['messages'][0]['content']);
     }
 
     public function test_top_p_fluent_builder(): void
@@ -230,20 +252,20 @@ class RodiumAIClientTest extends TestCase
         }
     }
 
-    public function test_invalid_model_string_throws(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        $client = $this->makeClient([]);
-        $client->model('invalid/unknown-model')->chat('Hi');
-    }
-
-    public function test_models_returns_model_collection(): void
+    public function test_models_returns_model_collection_with_chat_models(): void
     {
         $fixture = json_encode([
             'data' => [
-                ['id' => 'openai/gpt-4o', 'context_window' => 128000],
-                ['id' => 'anthropic/claude-3-5-sonnet', 'context_window' => 200000],
+                [
+                    'id' => 'openai/gpt-4o',
+                    'context_window' => 128000,
+                    'rodiumai_capabilities' => ['output_modalities' => ['text']],
+                ],
+                [
+                    'id' => 'anthropic/claude-3-5-sonnet',
+                    'context_window' => 200000,
+                    'rodiumai_capabilities' => ['output_modalities' => ['text']],
+                ],
             ],
         ]);
 
@@ -251,5 +273,7 @@ class RodiumAIClientTest extends TestCase
         $models = $client->models();
 
         $this->assertSame(['openai/gpt-4o', 'anthropic/claude-3-5-sonnet'], $models->ids());
+        $this->assertCount(2, $models->chatModels());
+        $this->assertSame('openai', $models->byProvider('openai')->all()[0]->providerPrefix());
     }
 }

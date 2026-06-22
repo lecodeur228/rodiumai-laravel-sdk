@@ -11,7 +11,6 @@ final class ChatPayloadBuilder
 {
     public function __construct(
         private readonly string $defaultModel,
-        private readonly ModelIdResolver $modelResolver,
         private readonly ?string $pendingModel = null,
         private readonly ?float $pendingTemperature = null,
         private readonly ?float $pendingTopP = null,
@@ -34,10 +33,8 @@ final class ChatPayloadBuilder
             array_unshift($messages, ['role' => 'system', 'content' => $this->pendingSystemPrompt]);
         }
 
-        $model = $options['model'] ?? $this->pendingModel ?? $this->defaultModel;
-
         $payload = [
-            'model' => $this->modelResolver->resolve($model),
+            'model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel,
             'messages' => $messages,
             'stream' => $stream,
         ];

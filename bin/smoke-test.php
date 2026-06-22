@@ -16,9 +16,6 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use RodiumAI\Enums\RodiumAIModel;
-use RodiumAI\Enums\RodiumAIModality;
-use RodiumAI\Enums\RodiumAIProvider;
 use RodiumAI\RodiumAIClient;
 
 function line(string $char = '─', int $width = 60): void
@@ -58,24 +55,26 @@ if ($apiKey === '') {
     exit(1);
 }
 
-$baseUrl = getenv('RODIUMAI_BASE_URL') ?: 'https://api.rodiumai.io/v1';
+$locale = getenv('RODIUMAI_LOCALE') ?: null;
 $model = getenv('RODIUMAI_DEFAULT_MODEL') ?: 'openai/gpt-4o';
 $timeout = (int) (getenv('RODIUMAI_TIMEOUT') ?: 60);
 
 echo PHP_EOL;
 echo "  RodiumAI SDK — smoke test live" . PHP_EOL;
-echo "  Base URL : {$baseUrl}" . PHP_EOL;
+echo "  API      : https://api.rodiumai.io/v1" . PHP_EOL;
+echo "  Locale   : " . ($locale ?? '(default en)') . PHP_EOL;
 echo "  Modèle   : {$model}" . PHP_EOL;
 echo "  Clé API  : " . substr($apiKey, 0, 12) . '…' . substr($apiKey, -4) . PHP_EOL;
 
 $client = new RodiumAIClient(
     apiKey: $apiKey,
-    baseUrl: $baseUrl,
     timeout: $timeout,
     defaultModel: $model,
+    locale: $locale,
 );
 
 $failed = false;
+$collection = null;
 
 // ─── 1. Models ───────────────────────────────────────────────────────────────
 section('1. GET /models — models()');
@@ -133,32 +132,32 @@ try {
     fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
 }
 
-// ─── 3. Enum RodiumAIModel ───────────────────────────────────────────────────
-section('3. Enums — RodiumAIModel / Provider / Modality');
-
-echo "  Enum cases : " . count(RodiumAIModel::cases()) . PHP_EOL;
-echo "  Exemple    : " . RodiumAIModel::OpenAiGpt4o->name . " => " . RodiumAIModel::OpenAiGpt4o->value . PHP_EOL;
-echo "  Provider   : " . RodiumAIModel::OpenAiGpt4o->provider()->label() . PHP_EOL;
-echo "  Modality   : " . RodiumAIModel::OpenAiGpt4o->modality()->label() . PHP_EOL;
-echo PHP_EOL . "  Modèles texte Anthropic (" . count(RodiumAIModel::forProvider(RodiumAIProvider::Anthropic)) . ") :" . PHP_EOL;
-foreach (array_slice(RodiumAIModel::forProvider(RodiumAIProvider::Anthropic), 0, 3) as $m) {
-    echo "    - {$m->name} ({$m->value})" . PHP_EOL;
-}
-echo PHP_EOL . "  Modèles image :" . PHP_EOL;
-foreach (RodiumAIModel::forModality(RodiumAIModality::Image) as $m) {
-    echo "    - {$m->value}" . PHP_EOL;
-}
-
-// ─── 4. Chat fluent builder ──────────────────────────────────────────────────
-section('4. POST /chat/completions — fluent builder + enum');
+// ─── 3. Catalogue dynamique (chatModels, providers) ─────────────────────────
+section('3. Catalogue dynamique — chatModels / providerPrefixes');
 
 try {
-    $response = $client
-        ->model(RodiumAIModel::OpenAiGpt4o)
-        ->temperature(0.3)
-        ->maxTokens(30)
-        ->systemPrompt('Tu réponds toujours en français, en une seule phrase courte.')
-        ->chat([
+    $collection = $client->models();
+    ok($collection->count() . ' modèle(s) depuis GET /v1/models');
+    echo '  Providers : ' . implode(', ', $collection->providerPrefixes()) . PHP_EOL;
+    echo PHP_EOL . '  chatModels (5 premiers) :' . PHP_EOL;
+    foreach (array_slice($collection->chatModels(), 0, 5) as $info) {
+        echo "    - {$info->id} (context: {$info->contextWindow})" . PHP_EOL;
+    }
+} catch (Throwable $e) {
+    $failed = true;
+    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
+}
+
+// ─── 4. Chat fluent builder + language() ─────────────────────────────────────
+section('4. POST /chat/completions — fluent builder + language()');
+
+try {
+    $modelId = ($collection ?? $client->models())->chatModels()[0]->id ?? $model;
+    $fluent = $client->model($modelId)->temperature(0.3)->maxTokens(30);
+    if ($locale !== null && $locale !== '') {
+        $fluent = $fluent->language($locale);
+    }
+    $response = $fluent->chat([
             ['role' => 'user', 'content' => 'Quelle est la capitale du Togo ?'],
         ]);
 
@@ -179,7 +178,7 @@ try {
     $full = '';
     $chunkCount = 0;
 
-    foreach ($client->model(RodiumAIModel::OpenAiGpt4o)->maxTokens(40)->stream('Dis «Bonjour RodiumAI» en une courte phrase.') as $delta) {
+    foreach ($client->model($modelId)->maxTokens(40)->stream('Dis «Bonjour RodiumAI» en une courte phrase.') as $delta) {
         echo $delta;
         $full .= $delta;
         $chunkCount++;

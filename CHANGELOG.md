@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Removed static enums `RodiumAIModel`, `RodiumAIProvider`, `RodiumAIModality` — use `GET /v1/models` via `models()` instead
+- **Breaking:** Removed configurable `base_url` — SDK targets `https://api.rodiumai.io/v1` only
+- **Breaking:** `model()` accepts string IDs only (from live API catalogue)
+- Added `ModelInfo` DTO with `supportsChatCompletion()`, `providerPrefix()`
+- Added `ModelCollection::chatModels()`, `findById()`, `providerPrefixes()`
+- Added i18n: config `locale`, `language()` fluent method, localized exception hints (`en`, `fr`, `es`)
+- Removed `bin/generate-model-enum.php` and `ModelIdResolver`
+
 ### Fixed
 
 - Restore compatibility with Laravel 10 and 11, and add compatibility with Laravel 13 by removing strict `laravel/framework` dependency in favor of wide `illuminate/support` version range (`^8.0|^9.0|^10.0|^11.0|^12.0|^13.0`).

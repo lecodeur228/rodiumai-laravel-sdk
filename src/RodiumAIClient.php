@@ -7,27 +7,25 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use RodiumAI\Data\ChatResponse;
 use RodiumAI\Data\ModelCollection;
-use RodiumAI\Enums\RodiumAIModel;
 use RodiumAI\Support\ApiExceptionMapper;
 use RodiumAI\Support\ChatPayloadBuilder;
-use RodiumAI\Support\ModelIdResolver;
+use RodiumAI\Support\RodiumAIMessages;
 use RodiumAI\Support\SseStreamReader;
 
 /**
  * HTTP client for the RodiumAI REST API (OpenAI-compatible).
  *
  * @see https://www.rodiumai.io/docs
- * @see https://www.rodiumai.io/docs/api/overview
  */
 class RodiumAIClient
 {
     private Client $http;
 
-    private readonly ModelIdResolver $modelResolver;
-
     private readonly ApiExceptionMapper $exceptionMapper;
 
     private readonly SseStreamReader $streamReader;
+
+    private readonly RodiumAIMessages $messages;
 
     private ?string $pendingModel = null;
 
@@ -41,18 +39,17 @@ class RodiumAIClient
 
     public function __construct(
         private readonly string $apiKey,
-        private readonly string $baseUrl = 'https://api.rodiumai.io/v1',
         private readonly int $timeout = 30,
         private readonly string $defaultModel = 'openai/gpt-4o',
-        ?ModelIdResolver $modelResolver = null,
+        ?string $locale = null,
         ?ApiExceptionMapper $exceptionMapper = null,
         ?SseStreamReader $streamReader = null,
     ) {
-        $this->modelResolver = $modelResolver ?? new ModelIdResolver;
-        $this->exceptionMapper = $exceptionMapper ?? new ApiExceptionMapper;
+        $this->messages = RodiumAIMessages::resolve($locale ?? 'en');
+        $this->exceptionMapper = $exceptionMapper ?? new ApiExceptionMapper($this->messages);
         $this->streamReader = $streamReader ?? new SseStreamReader;
         $this->http = new Client([
-            'base_uri' => rtrim($this->baseUrl, '/') . '/',
+            'base_uri' => 'https://api.rodiumai.io/v1/',
             'timeout' => $this->timeout,
             'headers' => [
                 'Authorization' => "Bearer {$this->apiKey}",
@@ -62,10 +59,10 @@ class RodiumAIClient
         ]);
     }
 
-    public function model(string|RodiumAIModel $model): static
+    public function model(string $model): static
     {
         $clone = clone $this;
-        $clone->pendingModel = $this->modelResolver->resolve($model);
+        $clone->pendingModel = $model;
 
         return $clone;
     }
@@ -102,9 +99,22 @@ class RodiumAIClient
         return $clone;
     }
 
+    /** Optional — inject system prompt so the model replies in the given language. */
+    public function language(string $locale): static
+    {
+        $instruction = RodiumAIMessages::resolve($locale)->aiResponseInstruction;
+        $clone = clone $this;
+        $existing = $this->pendingSystemPrompt;
+        $clone->pendingSystemPrompt = ($existing === null || $existing === '')
+            ? $instruction
+            : (str_contains($existing, $instruction) ? $existing : "{$instruction}\n{$existing}");
+
+        return $clone;
+    }
+
     /**
      * @param  array<int, array{role: string, content: string}>|string  $messages
-     * @param  array<string, mixed>  $options  Optional: model, temperature, top_p, max_tokens, stop
+     * @param  array<string, mixed>  $options
      */
     public function chat(array|string $messages, array $options = []): ChatResponse
     {
@@ -122,7 +132,6 @@ class RodiumAIClient
 
     /**
      * @param  array<int, array{role: string, content: string}>|string  $messages
-     * @param  array<string, mixed>  $options
      * @return Generator<string>
      */
     public function stream(array|string $messages, array $options = []): Generator
@@ -158,7 +167,6 @@ class RodiumAIClient
     {
         return new ChatPayloadBuilder(
             defaultModel: $this->defaultModel,
-            modelResolver: $this->modelResolver,
             pendingModel: $this->pendingModel,
             pendingTemperature: $this->pendingTemperature,
             pendingTopP: $this->pendingTopP,

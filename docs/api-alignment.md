@@ -23,7 +23,7 @@ References:
 
 | API parameter | SDK support | How |
 |---------------|-------------|-----|
-| `model` | Yes | `->model()`, `$options['model']`, config `default_model`, or `RodiumAIModel` enum |
+| `model` | Yes | `->model('provider/model-id')`, `$options['model']`, config `default_model`, or IDs from `models()` |
 | `messages` | Yes | Array of `{role, content}` or shorthand string (converted to user message) |
 | `max_tokens` | Yes | `->maxTokens()` or `$options['max_tokens']` |
 | `temperature` | Yes | `->temperature()` or `$options['temperature']` (0–2) |
@@ -67,13 +67,7 @@ Official reference: [API errors](https://www.rodiumai.io/docs/api/errors).
 
 ## Model IDs
 
-Use provider-scoped slugs (`openai/gpt-4o`, `anthropic/claude-sonnet-4-6`, …) as documented on the [models catalogue](https://www.rodiumai.io/models).
-
-The `RodiumAIModel` enum mirrors `GET /v1/models`. Regenerate with:
-
-```bash
-RODIUMAI_API_KEY="..." php bin/generate-model-enum.php
-```
+Use provider-scoped slugs (`openai/gpt-4o`, `anthropic/claude-sonnet-4-6`, …) from `GET /v1/models` or the [models catalogue](https://www.rodiumai.io/models).
 
 ## Not in scope (v0.x)
 

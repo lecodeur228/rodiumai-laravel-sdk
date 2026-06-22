@@ -27,7 +27,8 @@ Official PHP / Laravel SDK for the [Rodium AI](https://www.rodiumai.io) API — 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Quick start](#quick-start)
-- [Typed models (enum)](#typed-models-enum)
+- [Dynamic models (API)](#dynamic-models-api)
+- [Multilingual](#multilingual)
 - [Chat parameters](#chat-parameters)
 - [Streaming (SSE)](#streaming-sse)
 - [Listing models](#listing-models)
@@ -93,10 +94,12 @@ Same Composer command. Then instantiate `RodiumAI\RodiumAIClient` directly (see 
 
 ```env
 RODIUMAI_API_KEY=rd_sk_your_secret_key
-RODIUMAI_BASE_URL=https://api.rodiumai.io/v1
 RODIUMAI_DEFAULT_MODEL=openai/gpt-4o
 RODIUMAI_TIMEOUT=30
+# RODIUMAI_LOCALE=fr   # optional — SDK error hints only
 ```
+
+The SDK always uses `https://api.rodiumai.io/v1` (not configurable).
 
 Never commit `.env` or API keys to the repository.
 
@@ -105,61 +108,75 @@ Never commit `.env` or API keys to the repository.
 ### Laravel (Facade)
 
 ```php
-use RodiumAI\Enums\RodiumAIModel;
 use RodiumAI\Facades\RodiumAI;
 
-$response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
+$catalogue = RodiumAI::models();
+$modelId = $catalogue->chatModels()[0]->id;
+
+$response = RodiumAI::model($modelId)
     ->temperature(0.7)
     ->maxTokens(300)
     ->chat('Explain Rodium AI in two sentences.');
 
 echo $response->content;
-echo $response->totalTokens(); // billed tokens
 ```
 
 ### Plain PHP
 
 ```php
-use RodiumAI\Enums\RodiumAIModel;
 use RodiumAI\RodiumAIClient;
 
-$client = new RodiumAIClient(
-    apiKey: getenv('RODIUMAI_API_KEY'),
-);
+$client = new RodiumAIClient(apiKey: getenv('RODIUMAI_API_KEY'));
 
-$response = $client
-    ->model(RodiumAIModel::AnthropicClaudeSonnet46)
-    ->chat('Hello!');
+$catalogue = $client->models();
+$modelId = $catalogue->chatModels()[0]->id;
+
+$response = $client->model($modelId)->chat('Hello!');
 
 echo $response->content;
 ```
 
 Equivalent to the [cURL / OpenAI SDK quickstart](https://www.rodiumai.io/docs): `POST https://api.rodiumai.io/v1/chat/completions` with `Authorization: Bearer {RODIUMAI_API_KEY}`.
 
-## Typed models (enum)
+## Dynamic models (API)
 
-**45+** catalogue models are available via `RodiumAIModel` — IDE autocomplete and runtime validation:
+Models are fetched live from [GET /v1/models](https://www.rodiumai.io/docs/api/models) — always up to date with the platform catalogue:
 
 ```php
-use RodiumAI\Enums\RodiumAIModality;
-use RodiumAI\Enums\RodiumAIModel;
-use RodiumAI\Enums\RodiumAIProvider;
+$catalogue = RodiumAI::models();
 
-RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->chat('…');
+$catalogue->ids();                    // all model IDs
+$catalogue->chatModels();             // text/chat-capable only
+$catalogue->providerPrefixes();       // ['anthropic', 'google', 'openai', …]
+$catalogue->byProvider('anthropic');  // filter by provider prefix
+$catalogue->findById('openai/gpt-4o'); // ?ModelInfo
 
-// Filters
-RodiumAIModel::forProvider(RodiumAIProvider::Google);
-RodiumAIModel::forModality(RodiumAIModality::Text);
-
-// Text chat only
-RodiumAIModel::OpenAiGpt4o->supportsChatCompletion(); // true
+foreach ($catalogue->chatModels() as $info) {
+    echo $info->id . ' — ' . $info->contextWindow . PHP_EOL;
+}
 ```
 
-When Rodium AI adds new models:
+Pass any `id` from the API to `->model('openai/gpt-4o')`.
 
-```bash
-RODIUMAI_API_KEY="…" php bin/generate-model-enum.php
+## Multilingual (optional)
+
+Language is **never required**. By default, SDK error hints are in English and the AI follows the user's message language.
+
+**Optional** — localized error hints via config:
+
+```env
+RODIUMAI_LOCALE=fr
 ```
+
+**Optional** — force AI responses in a specific language:
+
+```php
+RodiumAI::language('fr')  // only when you need it
+    ->model('openai/gpt-4o')
+    ->chat('Bonjour !');
+```
+
+Supported: `en` (default), `fr`, `es`.
 
 ## Chat parameters
 
@@ -167,7 +184,7 @@ Aligned with [chat-completions](https://www.rodiumai.io/docs/api/chat-completion
 
 | API parameter | SDK |
 |---------------|-----|
-| `model` | `->model()` / `RodiumAIModel` / `$options['model']` |
+| `model` | `->model('openai/gpt-4o')` / `$options['model']` / IDs from `models()` |
 | `messages` | Array of `{role, content}` or `string` (→ `user` message) |
 | `max_tokens` | `->maxTokens()` / `$options['max_tokens']` |
 | `temperature` (0–2) | `->temperature()` / `$options['temperature']` |
@@ -183,7 +200,7 @@ $messages = [
     ChatMessage::user('What is a Service Provider?'),
 ];
 
-$response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
+$response = RodiumAI::model('openai/gpt-4o')
     ->temperature(0.5)
     ->topP(0.9)
     ->maxTokens(500)
@@ -195,7 +212,7 @@ $response = RodiumAI::model(RodiumAIModel::OpenAiGpt4o)
 Follows [docs/api/streaming](https://www.rodiumai.io/docs/api/streaming): `data: …` lines, end with `data: [DONE]`.
 
 ```php
-foreach (RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->stream('Tell a short story.') as $delta) {
+foreach (RodiumAI::model('openai/gpt-4o')->stream('Tell a short story.') as $delta) {
     echo $delta;
 }
 ```
@@ -235,7 +252,7 @@ foreach ($models->ids() as $id) {
     echo $id . PHP_EOL;
 }
 
-$anthropic = $models->byProvider(RodiumAIProvider::Anthropic);
+$anthropic = $models->byProvider('anthropic');
 ```
 
 ## Error handling
