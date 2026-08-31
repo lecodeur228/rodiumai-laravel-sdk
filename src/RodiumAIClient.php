@@ -3,12 +3,19 @@
 namespace RodiumAI;
 
 use Generator;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
 use RodiumAI\Data\ChatResponse;
+use RodiumAI\Data\EmbeddingResponse;
+use RodiumAI\Data\ImageResponse;
+use RodiumAI\Data\MessageResponse;
 use RodiumAI\Data\ModelCollection;
+use RodiumAI\Data\ModelInfo;
+use RodiumAI\Data\PricingCollection;
+use RodiumAI\Data\TranscriptionResponse;
+use RodiumAI\Data\VideoResponse;
+use RodiumAI\Data\WalletResponse;
 use RodiumAI\Support\ApiExceptionMapper;
 use RodiumAI\Support\ChatPayloadBuilder;
+use RodiumAI\Support\HttpTransport;
 use RodiumAI\Support\RodiumAIMessages;
 use RodiumAI\Support\SseStreamReader;
 
@@ -19,9 +26,7 @@ use RodiumAI\Support\SseStreamReader;
  */
 class RodiumAIClient
 {
-    private Client $http;
-
-    private readonly ApiExceptionMapper $exceptionMapper;
+    private HttpTransport $transport;
 
     private readonly SseStreamReader $streamReader;
 
@@ -41,22 +46,22 @@ class RodiumAIClient
         private readonly string $apiKey,
         private readonly int $timeout = 30,
         private readonly string $defaultModel = 'openai/gpt-4o',
+        private readonly string $baseUrl = 'https://api.rodiumai.io/v1',
         ?string $locale = null,
         ?ApiExceptionMapper $exceptionMapper = null,
         ?SseStreamReader $streamReader = null,
+        ?HttpTransport $transport = null,
     ) {
         $this->messages = RodiumAIMessages::resolve($locale ?? 'en');
-        $this->exceptionMapper = $exceptionMapper ?? new ApiExceptionMapper($this->messages);
+        $exceptionMapper = $exceptionMapper ?? new ApiExceptionMapper($this->messages);
         $this->streamReader = $streamReader ?? new SseStreamReader;
-        $this->http = new Client([
-            'base_uri' => 'https://api.rodiumai.io/v1/',
-            'timeout' => $this->timeout,
-            'headers' => [
-                'Authorization' => "Bearer {$this->apiKey}",
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ],
-        ]);
+        $this->transport = $transport ?? HttpTransport::create(
+            apiKey: $this->apiKey,
+            baseUrl: $this->baseUrl,
+            timeout: $this->timeout,
+            exceptionMapper: $exceptionMapper,
+            messages: $this->messages,
+        );
     }
 
     public function model(string $model): static
@@ -113,54 +118,173 @@ class RodiumAIClient
     }
 
     /**
-     * @param  array<int, array{role: string, content: string}>|string  $messages
+     * @param  array<int, array{role: string, content: string|array<int, mixed>}>|string  $messages
      * @param  array<string, mixed>  $options
      */
     public function chat(array|string $messages, array $options = []): ChatResponse
     {
         $payload = $this->payloadBuilder()->build($messages, $options, stream: false);
 
-        try {
-            $response = $this->http->post('chat/completions', ['json' => $payload]);
-            $data = json_decode($response->getBody()->getContents(), true);
-
-            return ChatResponse::fromArray($data);
-        } catch (ClientException $e) {
-            throw $this->exceptionMapper->map($e);
-        }
+        return ChatResponse::fromArray(
+            $this->transport->requestJson('POST', 'chat/completions', $payload, $this->requestOptions($options))
+        );
     }
 
     /**
-     * @param  array<int, array{role: string, content: string}>|string  $messages
+     * @param  array<int, array{role: string, content: string|array<int, mixed>}>|string  $messages
      * @return Generator<string>
      */
     public function stream(array|string $messages, array $options = []): Generator
     {
         $payload = $this->payloadBuilder()->build($messages, $options, stream: true);
+        $response = $this->transport->requestStream(
+            'chat/completions',
+            $payload,
+            $this->requestOptions($options),
+        );
 
-        try {
-            $response = $this->http->post('chat/completions', [
-                'json' => $payload,
-                'stream' => true,
-            ]);
-
-            yield from $this->streamReader->readTextDeltas($response->getBody());
-        } catch (ClientException $e) {
-            throw $this->exceptionMapper->map($e);
-        }
+        yield from $this->streamReader->readTextDeltas($response->getBody());
     }
 
     /** @see https://www.rodiumai.io/docs/api/models */
     public function models(): ModelCollection
     {
-        try {
-            $response = $this->http->get('models');
-            $data = json_decode($response->getBody()->getContents(), true);
+        return ModelCollection::fromArray($this->transport->requestJson('GET', 'models'));
+    }
 
-            return ModelCollection::fromArray($data);
-        } catch (ClientException $e) {
-            throw $this->exceptionMapper->map($e);
-        }
+    public function modelInfo(string $id): ModelInfo
+    {
+        return ModelInfo::fromArray(
+            $this->transport->requestJson('GET', 'models/' . rawurlencode($id))
+        );
+    }
+
+    public function codingModels(): ModelCollection
+    {
+        return ModelCollection::fromArray(
+            $this->transport->requestJson('GET', 'models/coding')
+        );
+    }
+
+    /**
+     * @param  string|list<string>  $input
+     * @param  array<string, mixed>  $options
+     */
+    public function embeddings(string|array $input, array $options = []): EmbeddingResponse
+    {
+        $payload = array_merge([
+            'model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel,
+            'input' => $input,
+        ], $this->passthrough($options, ['model', 'input']));
+
+        return EmbeddingResponse::fromArray(
+            $this->transport->requestJson('POST', 'embeddings', $payload, $this->requestOptions($options))
+        );
+    }
+
+    /** @param  array<string, mixed>  $options */
+    public function images(array $options): ImageResponse
+    {
+        $payload = array_merge(
+            ['model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel],
+            $this->passthrough($options, ['model'])
+        );
+
+        return ImageResponse::fromArray(
+            $this->transport->requestJson('POST', 'images/generations', $payload, $this->requestOptions($options))
+        );
+    }
+
+    /** @param  array<string, mixed>  $options */
+    public function videos(array $options): VideoResponse
+    {
+        $payload = array_merge(
+            ['model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel],
+            $this->passthrough($options, ['model'])
+        );
+
+        $requestOptions = $this->requestOptions($options);
+        $requestOptions['timeout'] = $options['timeout'] ?? max($this->timeout, 600);
+
+        return VideoResponse::fromArray(
+            $this->transport->requestJson('POST', 'videos/generations', $payload, $requestOptions)
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function transcribe(string $filePath, array $options = []): TranscriptionResponse
+    {
+        $fields = [
+            'model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel,
+            'language' => $options['language'] ?? null,
+            'prompt' => $options['prompt'] ?? null,
+            'response_format' => $options['response_format'] ?? null,
+            'temperature' => $options['temperature'] ?? null,
+        ];
+
+        return TranscriptionResponse::fromArray(
+            $this->transport->requestMultipart(
+                'audio/transcriptions',
+                $fields,
+                $filePath,
+                options: $this->requestOptions($options),
+            )
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function speech(array $options): string
+    {
+        $payload = array_merge(
+            ['model' => $options['model'] ?? $this->pendingModel ?? $this->defaultModel],
+            $this->passthrough($options, ['model'])
+        );
+
+        return $this->transport->requestBinary(
+            'POST',
+            'audio/speech',
+            $payload,
+            $this->requestOptions($options),
+        );
+    }
+
+    /**
+     * Anthropic Messages API drop-in (POST /v1/messages).
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function messages(array $options): MessageResponse
+    {
+        $transport = $this->transport->withHeaders([
+            'x-api-key' => $this->apiKey,
+            'anthropic-version' => $options['anthropic_version'] ?? '2023-06-01',
+        ]);
+
+        $payload = $this->passthrough($options, ['anthropic_version']);
+
+        return MessageResponse::fromArray(
+            $transport->requestJson('POST', 'messages', $payload, $this->requestOptions($options))
+        );
+    }
+
+    public function wallet(): WalletResponse
+    {
+        return WalletResponse::fromArray(
+            $this->transport->requestJson('GET', 'wallet')
+        );
+    }
+
+    public function pricing(?string $model = null): PricingCollection
+    {
+        $options = $model !== null ? ['query' => ['model' => $model]] : [];
+
+        return PricingCollection::fromArray(
+            $this->transport->requestJson('GET', 'pricing', null, $options)
+        );
     }
 
     private function payloadBuilder(): ChatPayloadBuilder
@@ -173,5 +297,32 @@ class RodiumAIClient
             pendingMaxTokens: $this->pendingMaxTokens,
             pendingSystemPrompt: $this->pendingSystemPrompt,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @param  list<string>  $exclude
+     * @return array<string, mixed>
+     */
+    private function passthrough(array $options, array $exclude = []): array
+    {
+        $exclude = array_merge($exclude, ['timeout']);
+
+        return array_diff_key($options, array_flip($exclude));
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function requestOptions(array $options): array
+    {
+        $requestOptions = [];
+
+        if (isset($options['timeout'])) {
+            $requestOptions['timeout'] = $options['timeout'];
+        }
+
+        return $requestOptions;
     }
 }

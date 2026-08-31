@@ -24,7 +24,9 @@ final class ModelInfo
 
         return new self(
             id: $data['id'],
-            contextWindow: isset($data['context_window']) ? (int) $data['context_window'] : null,
+            contextWindow: isset($capabilities['context_window'])
+                ? (int) $capabilities['context_window']
+                : (isset($data['context_window']) ? (int) $data['context_window'] : null),
             outputModalities: is_array($modalities) ? array_values(array_filter($modalities, 'is_string')) : [],
             raw: $data,
         );
@@ -37,6 +39,32 @@ final class ModelInfo
         return $parts[0];
     }
 
+    /** @return array{slug?: string, name?: string}|null */
+    public function provider(): ?array
+    {
+        $provider = $this->raw['rodiumai_provider'] ?? null;
+
+        return is_array($provider) ? $provider : null;
+    }
+
+    public function displayName(): ?string
+    {
+        return $this->raw['rodiumai_display_name'] ?? null;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function pricing(): ?array
+    {
+        $pricing = $this->raw['rodiumai_pricing'] ?? null;
+
+        return is_array($pricing) ? $pricing : null;
+    }
+
+    public function status(): ?string
+    {
+        return $this->raw['rodiumai_status'] ?? null;
+    }
+
     public function supportsChatCompletion(): bool
     {
         if ($this->outputModalities !== []) {
@@ -44,5 +72,15 @@ final class ModelInfo
         }
 
         return $this->contextWindow !== null && $this->contextWindow > 0;
+    }
+
+    public function supportsTools(): bool
+    {
+        return (bool) ($this->raw['rodiumai_capabilities']['supports_tools'] ?? false);
+    }
+
+    public function supportsVision(): bool
+    {
+        return (bool) ($this->raw['rodiumai_capabilities']['supports_vision'] ?? false);
     }
 }

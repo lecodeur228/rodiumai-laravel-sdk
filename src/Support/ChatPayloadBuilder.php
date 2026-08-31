@@ -9,6 +9,9 @@ namespace RodiumAI\Support;
  */
 final class ChatPayloadBuilder
 {
+    /** @var list<string> */
+    private const RESERVED = ['model', 'messages', 'stream', 'temperature', 'top_p', 'max_tokens', 'stop'];
+
     public function __construct(
         private readonly string $defaultModel,
         private readonly ?string $pendingModel = null,
@@ -19,7 +22,7 @@ final class ChatPayloadBuilder
     ) {}
 
     /**
-     * @param  array<int, array{role: string, content: string}>|string  $messages
+     * @param  array<int, array{role: string, content: string|array<int, mixed>}>|string  $messages
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
@@ -43,6 +46,12 @@ final class ChatPayloadBuilder
         $this->applyOptional($payload, 'top_p', $options['top_p'] ?? $this->pendingTopP);
         $this->applyOptional($payload, 'max_tokens', $options['max_tokens'] ?? $this->pendingMaxTokens);
         $this->applyOptional($payload, 'stop', $options['stop'] ?? null);
+
+        foreach ($options as $key => $value) {
+            if (! in_array($key, self::RESERVED, true) && ! array_key_exists($key, $payload)) {
+                $payload[$key] = $value;
+            }
+        }
 
         return $payload;
     }

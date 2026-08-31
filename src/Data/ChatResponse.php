@@ -14,7 +14,7 @@ class ChatResponse
         public readonly string $model,
         public readonly string $content,
         public readonly string $finishReason,
-        /** @var array{prompt_tokens?: int, completion_tokens?: int, total_tokens?: int} */
+        /** @var array{prompt_tokens?: int, completion_tokens?: int, total_tokens?: int, cost_rodi?: float|int|string} */
         public readonly array $usage,
         /** Full JSON body returned by the API. */
         public readonly array $raw,
@@ -37,5 +37,22 @@ class ChatResponse
     public function totalTokens(): int
     {
         return $this->usage['total_tokens'] ?? 0;
+    }
+
+    public function costRodi(): ?float
+    {
+        if (! isset($this->usage['cost_rodi'])) {
+            return null;
+        }
+
+        return (float) $this->usage['cost_rodi'];
+    }
+
+    /** @return array{requested?: string, resolved?: string, profile?: ?string}|null */
+    public function routing(): ?array
+    {
+        $routing = $this->raw['rodiumai_routing'] ?? null;
+
+        return is_array($routing) ? $routing : null;
     }
 }

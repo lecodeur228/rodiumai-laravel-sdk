@@ -13,7 +13,7 @@
 Application
     → RodiumAIClient::chat()
         → ChatPayloadBuilder::build()
-        → Guzzle POST chat/completions
+        → HttpTransport::requestJson(POST chat/completions)
         → ChatResponse::fromArray()
 ```
 
@@ -25,12 +25,25 @@ ClientException
     → UnauthorizedException | InsufficientCreditsException | …
 ```
 
+## HttpTransport
+
+Central HTTP layer used by all endpoints:
+
+| Method | Use case |
+|--------|----------|
+| `requestJson()` | JSON request/response (chat, embeddings, wallet, …) |
+| `requestMultipart()` | Audio transcription file upload |
+| `requestBinary()` | TTS audio bytes |
+| `requestStream()` | SSE chat streaming |
+
+Auth: `Authorization: Bearer {api_key}` on every request. `messages()` adds `x-api-key` and `anthropic-version` headers.
+
 ## Fluent builder
 
-Methods `model()`, `temperature()`, `topP()`, `maxTokens()`, `systemPrompt()` return **`clone $this`** so a singleton-bound client in Laravel is never mutated:
+Methods `model()`, `temperature()`, `topP()`, `maxTokens()`, `systemPrompt()`, `language()` return **`clone $this`** so a singleton-bound client in Laravel is never mutated:
 
 ```php
-RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->chat('Hi'); // safe with Facade
+RodiumAI::model('openai/gpt-4o')->chat('Hi'); // safe with Facade
 ```
 
 ## Streaming
@@ -38,7 +51,7 @@ RodiumAI::model(RodiumAIModel::OpenAiGpt4o)->chat('Hi'); // safe with Facade
 ```
 RodiumAIClient::stream()
     → ChatPayloadBuilder (stream: true)
-    → Guzzle POST with stream option
+    → HttpTransport::requestStream()
     → SseStreamReader::readTextDeltas()
     → Generator<string>
 ```
@@ -59,9 +72,13 @@ Package discovery is declared in `composer.json` → `extra.laravel`.
 
 | Class | Role |
 |-------|------|
-| `ModelIdResolver` | Validates / resolves model strings and enums |
-| `ChatPayloadBuilder` | Builds request JSON |
-| `ApiExceptionMapper` | HTTP errors → typed exceptions |
+| `HttpTransport` | HTTP I/O (JSON, multipart, binary, stream) |
+| `ChatPayloadBuilder` | Builds chat request JSON + passthrough options |
+| `ApiExceptionMapper` | HTTP errors → typed exceptions (OpenAI + Anthropic shapes) |
 | `SseStreamReader` | Parses SSE lines |
 
-Pass custom instances into `RodiumAIClient` constructor for advanced testing or middleware-style customization.
+Pass custom `HttpTransport` into `RodiumAIClient` constructor for advanced testing.
+
+## Model catalogue
+
+Models are **always fetched live** from `GET /v1/models`. `ModelInfo` parses gateway fields under `rodiumai_capabilities`, `rodiumai_pricing`, etc. — never hard-coded enums.

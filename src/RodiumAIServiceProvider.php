@@ -17,6 +17,7 @@ class RodiumAIServiceProvider extends ServiceProvider
                 apiKey: $config['api_key'],
                 timeout: $config['timeout'],
                 defaultModel: $config['default_model'],
+                baseUrl: $config['base_url'],
                 locale: $config['locale'] ?? null,
             );
         });
