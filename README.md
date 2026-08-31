@@ -27,10 +27,11 @@ Official PHP / Laravel SDK for the [Rodium AI](https://www.rodiumai.io) API — 
 - [Configuration](#configuration)
 - [Quick start](#quick-start)
 - [Chat completions](#chat-completions)
-- [Streaming (SSE)](#streaming-sse)
-- [Models](#models)
+- [Streaming & real-time chat (SSE)](#streaming--real-time-chat-sse)
+- [Models catalogue](#models-catalogue)
 - [Embeddings](#embeddings)
-- [Images & videos](#images--videos)
+- [Images (`POST /v1/images/generations`)](#images-post-v1imagesgenerations)
+- [Videos (`POST /v1/videos/generations`)](#videos-post-v1videosgenerations)
 - [Audio](#audio)
 - [Anthropic Messages](#anthropic-messages)
 - [Wallet & pricing](#wallet--pricing)
@@ -111,7 +112,19 @@ echo $response->content;
 
 ## Chat completions
 
-Aligned with [docs/api/chat-completions](https://www.rodiumai.io/docs/api/chat-completions).
+`POST /v1/chat/completions` — OpenAI-compatible. All OpenAI fields pass-through (`tools`, `response_format`, …).
+
+### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `model` | yes | Catalogue slug or smart alias (`rodiumai/smart`, `rodium/fast`, …) |
+| `messages` | yes | String, `ChatMessage` objects, or arrays |
+| `max_tokens`, `temperature`, `top_p` | no | Decoding |
+| `stream` | no | SSE streaming |
+| `tools`, `tool_choice` | no | Function calling |
+| `response_format` | no | JSON mode / schema |
+| `session_id` | no | Custom models memory |
 
 ```php
 use RodiumAI\Data\ChatMessage;
@@ -128,20 +141,77 @@ $response = RodiumAI::model('openai/gpt-4o')
         'tools' => [/* OpenAI tool definitions */],
         'response_format' => ['type' => 'json_object'],
     ]);
+
+echo $response->content;
+echo $response->costRodi();
+```
+
+### Multi-turn conversation
+
+```php
+$history = [
+    ChatMessage::user('My name is Amina.'),
+    ChatMessage::assistant('Nice to meet you, Amina!'),
+    ChatMessage::user('What is my name?'),
+];
+$response = RodiumAI::chat($history);
+```
+
+### Multimodal vision
+
+```php
+$b64 = base64_encode(file_get_contents('invoice.png'));
+
+$response = RodiumAI::chat([[
+    'role' => 'user',
+    'content' => [
+        ['type' => 'text', 'text' => 'Extract the total amount.'],
+        ['type' => 'image_url', 'image_url' => ['url' => "data:image/png;base64,{$b64}"]],
+    ],
+]], ['model' => 'openai/gpt-4o']);
+```
+
+HTTP(S) image URLs work in chat (not in image/video generation).
+
+### Function calling
+
+```php
+$response = RodiumAI::chat('Weather in Lomé?', [
+    'model' => 'openai/gpt-4o',
+    'tools' => [[
+        'type' => 'function',
+        'function' => [
+            'name' => 'get_weather',
+            'parameters' => [
+                'type' => 'object',
+                'properties' => ['city' => ['type' => 'string']],
+                'required' => ['city'],
+            ],
+        ],
+    ]],
+    'tool_choice' => 'auto',
+]);
 ```
 
 ### Smart routing
 
-Use `rodiumai/smart` as the model id — the resolved model and routing metadata are returned:
+| Alias | Behavior |
+|-------|----------|
+| `rodiumai/smart` | LLM router — metadata in `$response->routing()` |
+| `rodium/fast`, `rodium/pro`, … | Rule-based profiles |
 
 ```php
 $response = RodiumAI::model('rodiumai/smart')->chat('Summarize RODI credits.');
-$routing = $response->routing(); // ['requested' => 'rodiumai/smart', 'resolved' => 'openai/gpt-4o', …]
+$routing = $response->routing();
 ```
 
 See [Smart routing guide](https://www.rodiumai.io/docs/guides/smart).
 
-## Streaming (SSE)
+---
+
+## Streaming & real-time chat (SSE)
+
+**No WebSocket** — real-time discussion uses **SSE** only.
 
 ```php
 foreach (RodiumAI::model('openai/gpt-4o')->stream('Tell a short story.') as $delta) {
@@ -149,7 +219,27 @@ foreach (RodiumAI::model('openai/gpt-4o')->stream('Tell a short story.') as $del
 }
 ```
 
-Laravel `StreamedResponse` example:
+### Real-time chat loop
+
+```php
+$history = [];
+
+$ask = function (string $userText) use (&$history) {
+    $history[] = ChatMessage::user($userText);
+    $parts = '';
+    foreach (RodiumAI::stream($history) as $delta) {
+        echo $delta; // push to UI
+        $parts .= $delta;
+    }
+    $history[] = ChatMessage::assistant($parts);
+    return $parts;
+};
+
+$ask('Bonjour!');
+$ask('Rappelle-moi ma première question.');
+```
+
+### Laravel `StreamedResponse`
 
 ```php
 return response()->stream(function () {
@@ -162,24 +252,31 @@ return response()->stream(function () {
 }, 200, ['Content-Type' => 'text/event-stream', 'Cache-Control' => 'no-cache']);
 ```
 
-## Models
+---
+
+## Models catalogue
 
 ```php
 $catalogue = RodiumAI::models();
-
 $catalogue->ids();
 $catalogue->chatModels();
 $catalogue->byProvider('anthropic');
 $catalogue->findById('openai/gpt-4o');
 
 $info = RodiumAI::modelInfo('openai/gpt-4o');
-$info->contextWindow;   // from rodiumai_capabilities
-$info->pricing();       // RODI rates
+$info->contextWindow;
+$info->pricing();
 
-$coding = RodiumAI::codingModels(); // GET /v1/models/coding
+$coding = RodiumAI::codingModels();
 ```
 
+Each model includes `rodiumai_pricing`, `rodiumai_capabilities` (modalities, streaming, tools, vision).
+
+---
+
 ## Embeddings
+
+`POST /v1/embeddings`
 
 ```php
 $response = RodiumAI::embeddings('Hello world', [
@@ -187,19 +284,81 @@ $response = RodiumAI::embeddings('Hello world', [
 ]);
 
 $vector = $response->firstEmbedding();
+
+// Batch
+$response = RodiumAI::embeddings(['Sentence A', 'Sentence B'], [
+    'model' => 'openai/text-embedding-3-small',
+]);
 ```
 
-## Images & videos
+---
+
+## Images (`POST /v1/images/generations`)
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `prompt` | yes | |
+| `n` | no | 1–10 (Imagen max 4) |
+| `size` | no | `1024x1024`, `1536x1024`, … |
+| `quality` | no | Affects RODI quote |
+| `aspect_ratio` | no | Gemini |
+| `image`, `images` | no | i2i — up to 14 refs |
+| `mask` | no | OpenAI inpainting |
+
+Reference images: base64, data URL, or `gs://` — **no remote HTTP fetch**.
+
+### Text-to-image
 
 ```php
 $image = RodiumAI::images([
     'model' => 'openai/gpt-image-1',
-    'prompt' => 'A sunset over Lomé',
+    'prompt' => 'A red fox in the snow',
     'size' => '1024x1024',
+    'quality' => 'medium',
 ]);
-
 $b64 = $image->firstB64();
+```
 
+### Image-to-image
+
+```php
+$ref = base64_encode(file_get_contents('product.png'));
+
+$image = RodiumAI::images([
+    'model' => 'google/gemini-3.1-flash-image',
+    'prompt' => 'Soft white studio background',
+    'image' => ['b64_json' => $ref, 'mime_type' => 'image/png'],
+]);
+```
+
+### Inpainting
+
+```php
+$image = RodiumAI::images([
+    'model' => 'openai/gpt-image-1',
+    'prompt' => 'Replace sky with sunset',
+    'image' => ['b64_json' => $sourceB64],
+    'mask' => ['b64_json' => $maskB64],
+]);
+```
+
+---
+
+## Videos (`POST /v1/videos/generations`)
+
+Always pass `'timeout' => 600` — jobs can take minutes.
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `prompt` | yes | |
+| `duration_seconds` | no | Default 8; Sora → 4/8/12 s |
+| `aspect_ratio`, `size` | no | Sora layout |
+| `image` | no | Start frame (image→video) |
+| `last_frame` | no | End frame (Veo interpolation) |
+
+### Text-to-video
+
+```php
 $video = RodiumAI::videos([
     'model' => 'google/veo-3.1-generate-preview',
     'prompt' => 'Ocean waves at golden hour',
@@ -208,33 +367,84 @@ $video = RodiumAI::videos([
 ]);
 ```
 
-## Audio
+### Image-to-video
 
 ```php
-// Transcription (multipart upload)
+$frame = base64_encode(file_get_contents('storyboard.png'));
+
+$video = RodiumAI::videos([
+    'model' => 'google/veo-3.1-generate-preview',
+    'prompt' => 'Subtle pulse animation',
+    'duration_seconds' => 8,
+    'image' => ['b64_json' => $frame, 'mime_type' => 'image/png'],
+    'timeout' => 600,
+]);
+```
+
+### Interpolation (Veo)
+
+```php
+$video = RodiumAI::videos([
+    'model' => 'google/veo-3.1-generate-preview',
+    'prompt' => 'Smooth morph between frames',
+    'image' => ['b64_json' => $startB64],
+    'last_frame' => ['b64_json' => $endB64],
+    'timeout' => 600,
+]);
+```
+
+---
+
+## Audio
+
+### Transcriptions — multipart
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `file` | yes | File path |
+| `model` | yes | |
+| `language` | no | ISO-639-1 (`fr`, `en`) |
+| `prompt` | no | Style hint |
+| `response_format` | no | `json`, `text`, `verbose_json` |
+
+```php
 $transcript = RodiumAI::transcribe('/path/to/audio.mp3', [
     'model' => 'google/gemini-2.5-flash',
     'language' => 'fr',
 ]);
 echo $transcript->text;
+```
 
-// Text-to-speech (returns raw audio bytes)
+### Speech — binary response
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `input` | yes | |
+| `voice` | no | alloy, echo, fable, onyx, nova, shimmer |
+| `response_format` | no | mp3, opus, wav, pcm |
+| `speed` | no | 0.25–4.0 |
+
+```php
 $audioBytes = RodiumAI::speech([
     'model' => 'openai/tts-1',
     'input' => 'Hello from RodiumAI',
-    'voice' => 'alloy',
+    'voice' => 'nova',
+    'response_format' => 'mp3',
 ]);
 file_put_contents('speech.mp3', $audioBytes);
 ```
 
+---
+
 ## Anthropic Messages
 
-Drop-in for [POST /v1/messages](https://www.rodiumai.io/docs/api/messages):
+`POST /v1/messages`
 
 ```php
 $response = RodiumAI::messages([
     'model' => 'anthropic/claude-sonnet-4-6',
     'max_tokens' => 1024,
+    'system' => 'You are concise.',
     'messages' => [
         ['role' => 'user', 'content' => 'Explain RODI credits.'],
     ],
@@ -243,9 +453,11 @@ $response = RodiumAI::messages([
 echo $response->content;
 ```
 
-## Wallet & pricing
+Streaming: `'stream' => true` — Anthropic SSE events.
 
-RodiumAI extensions:
+---
+
+## Wallet & pricing
 
 ```php
 $wallet = RodiumAI::wallet();
