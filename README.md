@@ -51,7 +51,7 @@ Official PHP / Laravel SDK for the [Rodium AI](https://www.rodiumai.io) API — 
 ## Installation
 
 ```bash
-composer require rodiumai/laravel-sdk:^0.2
+composer require rodiumai/laravel-sdk:^0.3
 ```
 
 Publish config (optional):
