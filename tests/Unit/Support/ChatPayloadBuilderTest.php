@@ -29,4 +29,19 @@ class ChatPayloadBuilderTest extends TestCase
         $this->assertSame(0.5, $payload['top_p']);
         $this->assertSame(['END'], $payload['stop']);
     }
+
+    public function test_passes_through_extra_options(): void
+    {
+        $builder = new ChatPayloadBuilder(defaultModel: 'openai/gpt-4o');
+
+        $payload = $builder->build('Hi', [
+            'tools' => [['type' => 'function']],
+            'response_format' => ['type' => 'json_object'],
+            'session_id' => 'abc',
+        ], stream: false);
+
+        $this->assertArrayHasKey('tools', $payload);
+        $this->assertArrayHasKey('response_format', $payload);
+        $this->assertSame('abc', $payload['session_id']);
+    }
 }

@@ -5,22 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.1] - 2026-08-31
+
+### Documentation
+
+- README: full API reference per endpoint (chat/streaming, images, videos, audio, messages, embeddings, wallet/pricing)
+- Examples for image-to-video, inpainting, multimodal chat, real-time SSE loops, function calling
+- GitHub links updated to `Docteur-Parfait/rodiumai-laravel-sdk`
+
+## [0.2.0] - 2026-08-31
+
+### Added
+
+- Full gateway alignment: `modelInfo()`, `codingModels()`, `embeddings()`, `images()`, `videos()`, `transcribe()`, `speech()`, `messages()`, `wallet()`, `pricing()`
+- `HttpTransport` internal HTTP layer (JSON, multipart, binary, streaming)
+- `ChatResponse::costRodi()`, `ChatResponse::routing()` for RodiumAI extensions
+- `ModelInfo` accessors: `provider()`, `displayName()`, `pricing()`, `status()`, `supportsTools()`, `supportsVision()`
+- Exceptions: `ForbiddenException` (403), `NotFoundException` (404)
+- `RodiumAIException::errorCode()`, `errorType()`; `RateLimitException::retryAfter()`
+- Anthropic-shaped error envelope parsing for `/v1/messages`
+- Chat payload passthrough for `tools`, `response_format`, `session_id`, and other upstream fields
+- DTOs: `EmbeddingResponse`, `ImageResponse`, `VideoResponse`, `TranscriptionResponse`, `MessageResponse`, `WalletResponse`, `PricingCollection`
 
 ### Changed
 
-- **Breaking:** Removed static enums `RodiumAIModel`, `RodiumAIProvider`, `RodiumAIModality` — use `GET /v1/models` via `models()` instead
-- **Breaking:** Removed configurable `base_url` — SDK targets `https://api.rodiumai.io/v1` only
-- **Breaking:** `model()` accepts string IDs only (from live API catalogue)
-- Added `ModelInfo` DTO with `supportsChatCompletion()`, `providerPrefix()`
-- Added `ModelCollection::chatModels()`, `findById()`, `providerPrefixes()`
-- Added i18n: config `locale`, `language()` fluent method, localized exception hints (`en`, `fr`, `es`)
-- Removed `bin/generate-model-enum.php` and `ModelIdResolver`
+- **Breaking:** Restored configurable `base_url` via `RODIUMAI_BASE_URL` (default `https://api.rodiumai.io/v1`)
+- **Breaking:** `ModelInfo::contextWindow` now reads `rodiumai_capabilities.context_window` (gateway shape)
+- Removed static enums `RodiumAIModel`, `RodiumAIProvider`, `RodiumAIModality` — use `models()` instead
+- `model()` accepts string IDs only (from live API catalogue)
+- Added i18n exception hints for 403/404 (`en`, `fr`, `es`)
 
 ### Fixed
 
-- Restore compatibility with Laravel 10 and 11, and add compatibility with Laravel 13 by removing strict `laravel/framework` dependency in favor of wide `illuminate/support` version range (`^8.0|^9.0|^10.0|^11.0|^12.0|^13.0`).
-- Restore pure PHP compatibility without forcing installation of `laravel/framework` package.
+- Laravel 10–13 compatibility via wide `illuminate/support` version range
 
 ## [0.1.1] - 2026-06-02
 
@@ -32,13 +49,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `RodiumAIClient` — chat completions, streaming SSE, list models
-- Fluent builder: `model()`, `temperature()`, `topP()`, `maxTokens()`, `systemPrompt()`
-- Laravel `ServiceProvider`, config publishable, `RodiumAI` Facade
-- DTOs: `ChatResponse`, `ChatMessage`, `ModelCollection`
-- Enums: `RodiumAIModel` (platform catalogue), `RodiumAIProvider`, `RodiumAIModality`
-- Typed exceptions: 401, 402, 429, 422 + `RodiumAIException::responseBody()`
-- Internal `Support/` classes (payload builder, SSE parser, exception mapper)
-- PHPUnit tests (mocked HTTP) + GitHub Actions (PHP 8.1–8.3, Laravel 10–11)
-- Scripts: `bin/smoke-test.php`, `bin/generate-model-enum.php`
-- Documentation: README, CONTRIBUTING, api-alignment, architecture, publishing guide
+- Initial release: chat, stream, models, Facade, typed exceptions

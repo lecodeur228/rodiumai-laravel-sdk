@@ -25,6 +25,7 @@ class FacadeTest extends TestCase
     {
         $app['config']->set('rodiumai', [
             'api_key' => 'rdk_test',
+            'base_url' => 'https://api.rodiumai.io/v1',
             'default_model' => 'openai/gpt-4o',
             'timeout' => 30,
             'locale' => null,

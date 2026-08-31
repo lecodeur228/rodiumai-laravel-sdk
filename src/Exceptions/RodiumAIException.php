@@ -18,6 +18,8 @@ class RodiumAIException extends RuntimeException
         ?Throwable $previous = null,
         private readonly ?array $responseBody = null,
         private readonly ?string $hint = null,
+        private readonly ?string $errorCode = null,
+        private readonly ?string $errorType = null,
     ) {
         parent::__construct($message, $code, $previous);
     }
@@ -30,6 +32,16 @@ class RodiumAIException extends RuntimeException
     public function hint(): ?string
     {
         return $this->hint;
+    }
+
+    public function errorCode(): ?string
+    {
+        return $this->errorCode;
+    }
+
+    public function errorType(): ?string
+    {
+        return $this->errorType;
     }
 
     public function __toString(): string

@@ -7,9 +7,6 @@
  * Usage:
  *   export RODIUMAI_API_KEY="rd_sk_..."
  *   php bin/smoke-test.php
- *
- * Ou en une ligne:
- *   RODIUMAI_API_KEY="rd_sk_..." php bin/smoke-test.php
  */
 
 declare(strict_types=1);
@@ -47,11 +44,10 @@ function dumpJson(mixed $data): void
 }
 
 $apiKey = getenv('RODIUMAI_API_KEY') ?: '';
+$baseUrl = rtrim(getenv('RODIUMAI_BASE_URL') ?: 'https://api.rodiumai.io/v1', '/');
 
 if ($apiKey === '') {
     fwrite(STDERR, "Erreur: définis RODIUMAI_API_KEY dans l'environnement.\n");
-    fwrite(STDERR, "  export RODIUMAI_API_KEY=\"rd_sk_...\"\n");
-    fwrite(STDERR, "  php bin/smoke-test.php\n");
     exit(1);
 }
 
@@ -60,159 +56,105 @@ $model = getenv('RODIUMAI_DEFAULT_MODEL') ?: 'openai/gpt-4o';
 $timeout = (int) (getenv('RODIUMAI_TIMEOUT') ?: 60);
 
 echo PHP_EOL;
-echo "  RodiumAI SDK — smoke test live" . PHP_EOL;
-echo "  API      : https://api.rodiumai.io/v1" . PHP_EOL;
-echo "  Locale   : " . ($locale ?? '(default en)') . PHP_EOL;
+echo "  RodiumAI SDK v0.2 — smoke test live" . PHP_EOL;
+echo "  API      : {$baseUrl}" . PHP_EOL;
 echo "  Modèle   : {$model}" . PHP_EOL;
-echo "  Clé API  : " . substr($apiKey, 0, 12) . '…' . substr($apiKey, -4) . PHP_EOL;
 
 $client = new RodiumAIClient(
     apiKey: $apiKey,
     timeout: $timeout,
     defaultModel: $model,
+    baseUrl: $baseUrl,
     locale: $locale,
 );
 
 $failed = false;
 $collection = null;
+$modelId = $model;
 
 // ─── 1. Models ───────────────────────────────────────────────────────────────
 section('1. GET /models — models()');
 
 try {
     $collection = $client->models();
-    $all = $collection->toArray();
-    $ids = $collection->ids();
-
-    ok(count($ids) . ' modèle(s) disponible(s)');
-    echo PHP_EOL . "  IDs (premiers 10) :" . PHP_EOL;
-    foreach (array_slice($ids, 0, 10) as $id) {
-        echo "    - {$id}" . PHP_EOL;
-    }
-    if (count($ids) > 10) {
-        echo "    … et " . (count($ids) - 10) . ' autre(s)' . PHP_EOL;
-    }
-
-    echo PHP_EOL . "  Filtre byProvider('anthropic') :" . PHP_EOL;
-    $anthropic = $collection->byProvider('anthropic');
-    foreach (array_slice($anthropic->ids(), 0, 5) as $id) {
-        echo "    - {$id}" . PHP_EOL;
-    }
-
-    echo PHP_EOL . "  Réponse brute (1er modèle) :" . PHP_EOL;
-    if ($all !== []) {
-        dumpJson($all[0]);
-    }
+    ok($collection->count() . ' modèle(s)');
+    echo '  Providers : ' . implode(', ', array_slice($collection->providerPrefixes(), 0, 5)) . PHP_EOL;
+    $modelId = $collection->chatModels()[0]->id ?? $model;
 } catch (Throwable $e) {
     $failed = true;
-    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
+    fail(get_class($e) . ': ' . $e->getMessage());
 }
 
-// ─── 2. Chat simple (string) ─────────────────────────────────────────────────
-section('2. POST /chat/completions — chat(string)');
+// ─── 2. Coding models ────────────────────────────────────────────────────────
+section('2. GET /models/coding — codingModels()');
 
 try {
-    $response = $client->chat('Réponds exactement avec le mot: PONG (rien d\'autre).');
+    $coding = $client->codingModels();
+    ok($coding->count() . ' modèle(s) coding');
+} catch (Throwable $e) {
+    $failed = true;
+    fail(get_class($e) . ': ' . $e->getMessage());
+}
+
+// ─── 3. Chat ─────────────────────────────────────────────────────────────────
+section('3. POST /chat/completions — chat()');
+
+try {
+    $response = $client->model($modelId)->maxTokens(30)->chat('Reply with exactly: PONG');
 
     ok('ChatResponse reçue');
-    echo PHP_EOL . "  Propriétés DTO :" . PHP_EOL;
-    echo "    id            : {$response->id}" . PHP_EOL;
-    echo "    model         : {$response->model}" . PHP_EOL;
-    echo "    content       : {$response->content}" . PHP_EOL;
-    echo "    finishReason  : {$response->finishReason}" . PHP_EOL;
-    echo "    totalTokens() : {$response->totalTokens()}" . PHP_EOL;
-
-    echo PHP_EOL . "  usage :" . PHP_EOL;
-    dumpJson($response->usage);
-
-    echo PHP_EOL . "  raw (réponse API complète) :" . PHP_EOL;
-    dumpJson($response->raw);
-} catch (Throwable $e) {
-    $failed = true;
-    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
-}
-
-// ─── 3. Catalogue dynamique (chatModels, providers) ─────────────────────────
-section('3. Catalogue dynamique — chatModels / providerPrefixes');
-
-try {
-    $collection = $client->models();
-    ok($collection->count() . ' modèle(s) depuis GET /v1/models');
-    echo '  Providers : ' . implode(', ', $collection->providerPrefixes()) . PHP_EOL;
-    echo PHP_EOL . '  chatModels (5 premiers) :' . PHP_EOL;
-    foreach (array_slice($collection->chatModels(), 0, 5) as $info) {
-        echo "    - {$info->id} (context: {$info->contextWindow})" . PHP_EOL;
-    }
-} catch (Throwable $e) {
-    $failed = true;
-    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
-}
-
-// ─── 4. Chat fluent builder + language() ─────────────────────────────────────
-section('4. POST /chat/completions — fluent builder + language()');
-
-try {
-    $modelId = ($collection ?? $client->models())->chatModels()[0]->id ?? $model;
-    $fluent = $client->model($modelId)->temperature(0.3)->maxTokens(30);
-    if ($locale !== null && $locale !== '') {
-        $fluent = $fluent->language($locale);
-    }
-    $response = $fluent->chat([
-            ['role' => 'user', 'content' => 'Quelle est la capitale du Togo ?'],
-        ]);
-
-    ok('Fluent builder OK');
-    echo PHP_EOL . "  content : {$response->content}" . PHP_EOL;
-    echo "  model   : {$response->model}" . PHP_EOL;
+    echo "  content : {$response->content}" . PHP_EOL;
     echo "  tokens  : {$response->totalTokens()}" . PHP_EOL;
+    if ($response->costRodi() !== null) {
+        echo "  cost_rodi : {$response->costRodi()}" . PHP_EOL;
+    }
 } catch (Throwable $e) {
     $failed = true;
-    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
+    fail(get_class($e) . ': ' . $e->getMessage());
 }
 
-// ─── 5. Streaming ─────────────────────────────────────────────────────────────
-section('5. POST /chat/completions — stream()');
+// ─── 4. Stream ───────────────────────────────────────────────────────────────
+section('4. POST /chat/completions — stream()');
 
 try {
-    echo "  Deltas en direct : ";
-    $full = '';
-    $chunkCount = 0;
-
-    foreach ($client->model($modelId)->maxTokens(40)->stream('Dis «Bonjour RodiumAI» en une courte phrase.') as $delta) {
+    echo "  Deltas : ";
+    foreach ($client->model($modelId)->maxTokens(20)->stream('Say hi briefly.') as $delta) {
         echo $delta;
-        $full .= $delta;
-        $chunkCount++;
-        flush();
     }
-
-    echo PHP_EOL . PHP_EOL;
-    ok("{$chunkCount} delta(s) reçu(s)");
-    echo "  Texte complet : {$full}" . PHP_EOL;
+    echo PHP_EOL;
+    ok('Stream OK');
 } catch (Throwable $e) {
     $failed = true;
-    fail(get_class($e) . ' [' . $e->getCode() . '] ' . $e->getMessage());
+    fail(get_class($e) . ': ' . $e->getMessage());
 }
 
-// ─── 6. ChatMessage DTO (optionnel) ──────────────────────────────────────────
-section('6. ChatMessage DTO → toArray()');
+// ─── 5. Wallet ───────────────────────────────────────────────────────────────
+section('5. GET /wallet — wallet()');
 
-use RodiumAI\Data\ChatMessage;
+try {
+    $wallet = $client->wallet();
+    ok("balance_rodi = {$wallet->balanceRodi}");
+} catch (Throwable $e) {
+    $failed = true;
+    fail(get_class($e) . ': ' . $e->getMessage());
+}
 
-$messages = [
-    ChatMessage::system('Tu es un assistant de test.'),
-    ChatMessage::user('Ping'),
-];
-echo "  Messages construits :" . PHP_EOL;
-dumpJson(array_map(fn (ChatMessage $m) => $m->toArray(), $messages));
+// ─── 6. Pricing ──────────────────────────────────────────────────────────────
+section('6. GET /pricing — pricing()');
 
-// ─── Résumé ──────────────────────────────────────────────────────────────────
+try {
+    $pricing = $client->pricing();
+    ok($pricing->count() . ' entrée(s), currency=' . $pricing->currency());
+} catch (Throwable $e) {
+    $failed = true;
+    fail(get_class($e) . ': ' . $e->getMessage());
+}
+
 section('Résumé');
-
 if ($failed) {
     fail('Au moins un test a échoué.');
     exit(1);
 }
 
 ok('Tous les tests live sont passés.');
-echo PHP_EOL;
 exit(0);

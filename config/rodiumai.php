@@ -9,6 +9,8 @@ return [
 
     'api_key' => env('RODIUMAI_API_KEY'),
 
+    'base_url' => rtrim(env('RODIUMAI_BASE_URL', 'https://api.rodiumai.io/v1'), '/'),
+
     'default_model' => env('RODIUMAI_DEFAULT_MODEL', 'openai/gpt-4o'),
 
     'timeout' => (int) env('RODIUMAI_TIMEOUT', 30),
