@@ -8,14 +8,14 @@ Official PHP / Laravel SDK for the [Rodium AI](https://www.rodiumai.io) API — 
 [![Total Downloads](https://img.shields.io/packagist/dt/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![PHP Version](https://img.shields.io/packagist/php-v/rodiumai/laravel-sdk.svg)](https://packagist.org/packages/rodiumai/laravel-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/lecodeur228/rodiumai-laravel-sdk/actions)
+[![Tests](https://github.com/Docteur-Parfait/rodiumai-laravel-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/Docteur-Parfait/rodiumai-laravel-sdk/actions)
 
 ## Links
 
 | Resource | URL |
 |----------|-----|
 | **Packagist** | [packagist.org/packages/rodiumai/laravel-sdk](https://packagist.org/packages/rodiumai/laravel-sdk) |
-| **Source code** | [github.com/lecodeur228/rodiumai-laravel-sdk](https://github.com/lecodeur228/rodiumai-laravel-sdk) |
+| **Source code** | [github.com/Docteur-Parfait/rodiumai-laravel-sdk](https://github.com/Docteur-Parfait/rodiumai-laravel-sdk) |
 | **Laravel SDK guide** | [rodiumai.io/docs/guides/laravel-sdk](https://www.rodiumai.io/docs/guides/laravel-sdk) |
 | **API documentation** | [rodiumai.io/docs](https://www.rodiumai.io/docs) |
 | **Dashboard & API keys** | [rodiumai.io/dashboard](https://www.rodiumai.io/dashboard) |
