@@ -337,6 +337,82 @@ class RodiumAIClientTest extends TestCase
         $this->assertSame('Hello from Claude', $response->content);
     }
 
+    public function test_messages_stream_yields_anthropic_text_deltas(): void
+    {
+        $sse = implode("\n", [
+            'event: message_start',
+            'data: {"type":"message_start","message":{"id":"msg_1"}}',
+            '',
+            'event: content_block_delta',
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hel"}}',
+            '',
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"lo"}}',
+            '',
+            'data: {"type":"message_stop"}',
+        ]) . "\n";
+
+        $history = [];
+        $client = $this->makeClient(
+            [new Response(200, ['Content-Type' => 'text/event-stream'], $sse)],
+            $history,
+        );
+
+        $deltas = iterator_to_array($client->messagesStream([
+            'model' => 'anthropic/claude-sonnet-4-6',
+            'max_tokens' => 100,
+            'messages' => [['role' => 'user', 'content' => 'Hi']],
+        ]));
+
+        $this->assertSame(['Hel', 'lo'], $deltas);
+        $this->assertSame('rdk_test', $history[0]['request']->getHeaderLine('x-api-key'));
+        $this->assertSame('2023-06-01', $history[0]['request']->getHeaderLine('anthropic-version'));
+    }
+
+    public function test_responses_parses_and_aggregates_output_text(): void
+    {
+        $fixture = json_encode([
+            'id' => 'resp_1',
+            'object' => 'response',
+            'model' => 'openai/gpt-4o',
+            'status' => 'completed',
+            'output' => [[
+                'type' => 'message',
+                'role' => 'assistant',
+                'content' => [
+                    ['type' => 'output_text', 'text' => 'Hel'],
+                    ['type' => 'output_text', 'text' => 'lo'],
+                ],
+            ]],
+            'usage' => ['input_tokens' => 4, 'output_tokens' => 2, 'total_tokens' => 6],
+        ]);
+
+        $client = $this->makeClient([new Response(200, [], $fixture)]);
+        $response = $client->responses(['model' => 'openai/gpt-4o', 'input' => 'hi']);
+
+        $this->assertSame('resp_1', $response->id);
+        $this->assertSame('Hello', $response->outputText);
+        $this->assertSame(6, $response->totalTokens());
+    }
+
+    public function test_responses_stream_yields_output_text_deltas(): void
+    {
+        $sse = implode("\n", [
+            'data: {"type":"response.created","response":{"id":"resp_1"}}',
+            '',
+            'data: {"type":"response.output_text.delta","delta":"Hel"}',
+            '',
+            'data: {"type":"response.output_text.delta","delta":"lo"}',
+            '',
+            'data: {"type":"response.completed"}',
+        ]) . "\n";
+
+        $client = $this->makeClient([new Response(200, ['Content-Type' => 'text/event-stream'], $sse)]);
+
+        $deltas = iterator_to_array($client->responsesStream(['model' => 'openai/gpt-4o', 'input' => 'hi']));
+
+        $this->assertSame(['Hel', 'lo'], $deltas);
+    }
+
     public function test_anthropic_error_format_is_mapped(): void
     {
         $body = json_encode([
