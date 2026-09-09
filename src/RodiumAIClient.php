@@ -10,6 +10,7 @@ use RodiumAI\Data\MessageResponse;
 use RodiumAI\Data\ModelCollection;
 use RodiumAI\Data\ModelInfo;
 use RodiumAI\Data\PricingCollection;
+use RodiumAI\Data\ResponsesResponse;
 use RodiumAI\Data\TranscriptionResponse;
 use RodiumAI\Data\VideoResponse;
 use RodiumAI\Data\WalletResponse;
@@ -269,6 +270,60 @@ class RodiumAIClient
         return MessageResponse::fromArray(
             $transport->requestJson('POST', 'messages', $payload, $this->requestOptions($options))
         );
+    }
+
+    /**
+     * Streaming variant of {@see messages()} — yields incremental text deltas
+     * from the Anthropic Messages streaming protocol.
+     *
+     * @param  array<string, mixed>  $options
+     * @return Generator<string>
+     */
+    public function messagesStream(array $options): Generator
+    {
+        $transport = $this->transport->withHeaders([
+            'x-api-key' => $this->apiKey,
+            'anthropic-version' => $options['anthropic_version'] ?? '2023-06-01',
+        ]);
+
+        $payload = $this->passthrough($options, ['anthropic_version']);
+        $payload['stream'] = true;
+
+        $response = $transport->requestStream('messages', $payload, $this->requestOptions($options));
+
+        yield from $this->streamReader->readAnthropicTextDeltas($response->getBody());
+    }
+
+    /**
+     * OpenAI Responses API passthrough (POST /v1/responses).
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function responses(array $options): ResponsesResponse
+    {
+        $payload = $this->passthrough($options);
+        $payload['stream'] = false;
+
+        return ResponsesResponse::fromArray(
+            $this->transport->requestJson('POST', 'responses', $payload, $this->requestOptions($options))
+        );
+    }
+
+    /**
+     * Streaming variant of {@see responses()} — yields incremental text deltas
+     * from `response.output_text.delta` events.
+     *
+     * @param  array<string, mixed>  $options
+     * @return Generator<string>
+     */
+    public function responsesStream(array $options): Generator
+    {
+        $payload = $this->passthrough($options);
+        $payload['stream'] = true;
+
+        $response = $this->transport->requestStream('responses', $payload, $this->requestOptions($options));
+
+        yield from $this->streamReader->readResponsesTextDeltas($response->getBody());
     }
 
     public function wallet(): WalletResponse

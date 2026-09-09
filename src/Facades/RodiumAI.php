@@ -11,6 +11,7 @@ use RodiumAI\Data\MessageResponse;
 use RodiumAI\Data\ModelCollection;
 use RodiumAI\Data\ModelInfo;
 use RodiumAI\Data\PricingCollection;
+use RodiumAI\Data\ResponsesResponse;
 use RodiumAI\Data\TranscriptionResponse;
 use RodiumAI\Data\VideoResponse;
 use RodiumAI\Data\WalletResponse;
@@ -28,6 +29,9 @@ use RodiumAI\RodiumAIClient;
  * @method static TranscriptionResponse transcribe(string $filePath, array $options = [])
  * @method static string speech(array $options)
  * @method static MessageResponse messages(array $options)
+ * @method static Generator messagesStream(array $options)
+ * @method static ResponsesResponse responses(array $options)
+ * @method static Generator responsesStream(array $options)
  * @method static WalletResponse wallet()
  * @method static PricingCollection pricing(?string $model = null)
  * @method static RodiumAIClient model(string $model)
